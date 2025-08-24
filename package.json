@@ -1,0 +1,31 @@
+{
+  "name": "loudoun-velo-routes",
+  "version": "1.0.0",
+  "description": "Loudoun Velo bike routes website with GitHub Pages deployment",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js && cd dist && python3 -m http.server 8000",
+    "test": "node -e \"console.log('✅ Build script syntax OK')\" && node build.js",
+    "clean": "rm -rf dist/*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mellowdrifter/loudounvelo.com.git"
+  },
+  "keywords": [
+    "cycling",
+    "bike-routes",
+    "loudoun-county",
+    "virginia",
+    "github-pages"
+  ],
+  "author": "Loudoun Velo",
+  "license": "MIT",
+  "homepage": "https://loudounvelo.com",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

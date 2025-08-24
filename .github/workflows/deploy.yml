@@ -1,0 +1,69 @@
+name: Build and Deploy Loudoun Velo Routes
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        if [ -f package.json ]; then
+          npm ci
+        else
+          # Create basic package.json if it doesn't exist
+          npm init -y
+          npm install --save-dev
+        fi
+        
+    - name: Create directories
+      run: |
+        mkdir -p routes
+        mkdir -p templates
+        mkdir -p images
+        mkdir -p dist
+        
+    - name: Build site
+      run: node build.js
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: site-build
+        path: dist/
+        retention-days: 30
+        
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        # Enable CNAME for custom domain
+        cname: loudounvelo.com
+        # Clean up old files
+        force_orphan: true
+        
+    - name: Deployment Summary
+      if: success()
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        echo "🌐 Site available at: https://loudounvelo.com"
+        echo "📊 Routes processed: $(cat dist/routes.json | grep -o '"title"' | wc -l)"
+        echo "📅 Build date: $(date)"
