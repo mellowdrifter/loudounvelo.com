@@ -20,16 +20,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
         
     - name: Install dependencies
       run: |
         if [ -f package.json ]; then
-          npm ci
+          npm install
         else
           # Create basic package.json if it doesn't exist
           npm init -y
-          npm install --save-dev
         fi
         
     - name: Create directories
