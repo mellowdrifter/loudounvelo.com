@@ -8,9 +8,23 @@ on:
   # Allow manual triggering
   workflow_dispatch:
 
+# Add permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout repository
@@ -40,23 +54,18 @@ jobs:
     - name: Build site
       run: node build.js
       
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        name: site-build
-        path: dist/
-        retention-days: 30
+        path: ./dist
         
     - name: Deploy to GitHub Pages
+      id: deployment
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
-        # Enable CNAME for custom domain
-        cname: loudounvelo.com
-        # Clean up old files
-        force_orphan: true
+      uses: actions/deploy-pages@v4
         
     - name: Deployment Summary
       if: success()
