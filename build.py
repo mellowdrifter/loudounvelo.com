@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Loudoun Velo Routes Site Builder
+Loudoun Velo Routes Site Builder - FIXED VERSION
 Builds a static website from RideWithGPS route URLs
 """
 
@@ -71,14 +71,18 @@ class BikeRoutesBuilder:
             self._load_routes_from_file()
 
     def _load_routes_from_file(self):
-        """Load routes from rides.txt file"""
+        """Load routes from rides.txt file - FIXED VERSION"""
         try:
             with open(self.rides_file, 'r', encoding='utf-8') as file:
-                lines = [
-                    line.strip() 
-                    for line in file.readlines() 
-                    if line.strip() and not line.strip().startswith('#')
-                ]
+                lines = file.readlines()  # Read lines directly
+                
+            # Filter lines
+            lines = [
+                line.strip() 
+                for line in lines 
+                if line.strip() and not line.strip().startswith('#')
+            ]
+            
         except FileNotFoundError:
             return
 

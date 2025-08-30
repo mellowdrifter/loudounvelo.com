@@ -4,22 +4,6 @@
 # Route types: road, gravel
 # Lines starting with # are comments and will be ignored
 
-# Example routes (replace with your actual Loudoun County routes):
-# https://ridewithgps.com/routes/12345678, road
-# https://ridewithgps.com/routes/23456789, gravel  
-# https://ridewithgps.com/routes/34567890, road
-
-# To add a new route:
-# 1. Create or find the route on RideWithGPS
-# 2. Copy the URL (format: https://ridewithgps.com/routes/123456)
-# 3. Add it as a new line with route type: URL, road  OR  URL, gravel
-# 4. Create a pull request or commit the changes
-# 5. The build system will automatically extract:
-#    - Route title and description
-#    - Distance and elevation data  
-#    - Map thumbnail image
-#    - Use your specified route type (road or gravel)
-
 # Add your actual RideWithGPS URLs below this line:
 https://ridewithgps.com/routes/51848673, gravel
 https://ridewithgps.com/routes/42639454, road
