@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Loudoun Velo Routes Site Builder - FIXED VERSION
+Loudoun Velo Routes Site Builder
 Builds a static website from RideWithGPS route URLs
 """
 
@@ -71,18 +71,16 @@ class BikeRoutesBuilder:
             self._load_routes_from_file()
 
     def _load_routes_from_file(self):
-        """Load routes from rides.txt file - FIXED VERSION"""
+        """Load routes from rides.txt file"""
         try:
             with open(self.rides_file, 'r', encoding='utf-8') as file:
-                lines = file.readlines()  # Read lines directly
+                lines = file.readlines()
                 
-            # Filter lines
             lines = [
                 line.strip() 
                 for line in lines 
                 if line.strip() and not line.strip().startswith('#')
             ]
-            
         except FileNotFoundError:
             return
 
@@ -354,48 +352,62 @@ class BikeRoutesBuilder:
             elif 'mixed' in content_lower or ('gravel' in content_lower and 'road' in content_lower):
                 route_type = 'mixed'
 
-            # Extract distance
+            # Extract distance - FIXED VERSION
             distance = None
             distance_patterns = [
-                r'distance["\s]*:[\s]*([0-9.]+)',
-                r'([0-9.]+)[\s]*km',
-                r'([0-9.]+)[\s]*miles',
-                r'"distance"[\s]*:[\s]*([0-9.]+)',
-                r'data-distance="([0-9.]+)"'
+                r'distance["\s]*:[\s]*([0-9]+\.?[0-9]*)',
+                r'([0-9]+\.?[0-9]*)[\s]*km',
+                r'([0-9]+\.?[0-9]*)[\s]*miles',
+                r'"distance"[\s]*:[\s]*([0-9]+\.?[0-9]*)',
+                r'data-distance="([0-9]+\.?[0-9]*)"'
             ]
             
             for pattern in distance_patterns:
                 match = re.search(pattern, html, re.IGNORECASE)
                 if match:
-                    distance = float(match.group(1))
-                    # Convert miles to km if needed
-                    if 'miles' in pattern:
-                        distance = distance * 1.60934
-                    # If distance is in meters, convert to km
-                    if distance > 500:
-                        distance = distance / 1000
-                    distance = round(distance, 1)
-                    break
+                    try:
+                        distance_str = match.group(1)
+                        # Skip if it's just a dot or empty
+                        if distance_str in ['.', '', '0']:
+                            continue
+                        distance = float(distance_str)
+                        # Convert miles to km if needed
+                        if 'miles' in pattern:
+                            distance = distance * 1.60934
+                        # If distance is in meters, convert to km
+                        if distance > 500:
+                            distance = distance / 1000
+                        distance = round(distance, 1)
+                        break
+                    except (ValueError, AttributeError):
+                        continue
 
-            # Extract elevation gain
+            # Extract elevation gain - FIXED VERSION
             elevation = None
             elevation_patterns = [
-                r'elevation[_\s]*gain["\s]*:[\s]*([0-9.]+)',
-                r'([0-9.]+)[\s]*m[\s]*elevation',
-                r'([0-9,]+)[\s]*ft[\s]*elevation',
-                r'"elevation_gain"[\s]*:[\s]*([0-9.]+)',
-                r'data-elevation-gain="([0-9.]+)"'
+                r'elevation[_\s]*gain["\s]*:[\s]*([0-9]+\.?[0-9]*)',
+                r'([0-9]+\.?[0-9]*)[\s]*m[\s]*elevation',
+                r'([0-9,]+\.?[0-9]*)[\s]*ft[\s]*elevation',
+                r'"elevation_gain"[\s]*:[\s]*([0-9]+\.?[0-9]*)',
+                r'data-elevation-gain="([0-9]+\.?[0-9]*)"'
             ]
             
             for pattern in elevation_patterns:
                 match = re.search(pattern, html, re.IGNORECASE)
                 if match:
-                    elevation = float(match.group(1).replace(',', ''))
-                    # Convert feet to meters if needed
-                    if 'ft' in pattern:
-                        elevation = elevation * 0.3048
-                    elevation = round(elevation)
-                    break
+                    try:
+                        elevation_str = match.group(1).replace(',', '')
+                        # Skip if it's just a dot or empty
+                        if elevation_str in ['.', '', '0']:
+                            continue
+                        elevation = float(elevation_str)
+                        # Convert feet to meters if needed
+                        if 'ft' in pattern:
+                            elevation = elevation * 0.3048
+                        elevation = round(elevation)
+                        break
+                    except (ValueError, AttributeError):
+                        continue
 
             return {
                 'title': title,
