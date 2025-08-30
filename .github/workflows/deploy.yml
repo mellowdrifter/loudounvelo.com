@@ -1,76 +1,70 @@
-name: Build and Deploy Loudoun Velo Routes
+name: Deploy Loudoun Velo Routes Site
 
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  # Allow manual triggering
-  workflow_dispatch:
-
-# Add permissions for GitHub Pages deployment
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
       with:
-        node-version: '18'
+        python-version: '3.11'
         
-    - name: Install dependencies
+    - name: Create required directories
       run: |
-        if [ -f package.json ]; then
-          npm install
-        else
-          # Create basic package.json if it doesn't exist
-          npm init -y
+        mkdir -p templates
+        mkdir -p routes
+        mkdir -p images
+        
+    - name: Check for required template file
+      run: |
+        if [ ! -f "templates/index.template.html" ]; then
+          echo "⚠️  Warning: templates/index.template.html not found"
+          echo "The build script will exit if this template is missing"
+          echo "Please ensure you have created the template file"
         fi
         
-    - name: Create directories
+    - name: Run site builder
       run: |
-        mkdir -p routes
-        mkdir -p templates
-        mkdir -p images
-        mkdir -p dist
+        python3 build.py
         
-    - name: Build site
-      run: node build.js
-      
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
+    - name: List generated files
+      run: |
+        echo "Generated files in dist/:"
+        ls -la dist/ || echo "No dist directory found"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
       with:
-        path: ./dist
+        name: site-build-artifacts
+        path: |
+          dist/
+          routes/
+        retention-days: 30
         
     - name: Deploy to GitHub Pages
-      id: deployment
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: actions/deploy-pages@v4
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist
+        cname: loudounvelo.com  # Custom domain from your script
         
-    - name: Deployment Summary
-      if: success()
+    - name: Display deployment info
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       run: |
-        echo "🚀 Deployment completed successfully!"
-        echo "🌐 Site available at: https://loudounvelo.com"
-        echo "📊 Routes processed: $(cat dist/routes.json | grep -o '"title"' | wc -l)"
-        echo "📅 Build date: $(date)"
+        echo "🎉 Site deployed successfully!"
+        echo "📁 Published from: ./dist"
+        echo "🌐 Domain: loudounvelo.com (if DNS configured)"
+        echo "📊 GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
