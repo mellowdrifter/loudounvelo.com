@@ -57,13 +57,20 @@ jobs:
           routes/
         retention-days: 30
         
+    - name: Setup Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: actions/configure-pages@v4
+      
+    - name: Upload to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: ./dist
+        
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
-        cname: loudounvelo.com  # Custom domain from your script
+      id: deployment
+      uses: actions/deploy-pages@v3
         
     - name: Display deployment info
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -72,3 +79,4 @@ jobs:
         echo "📁 Published from: ./dist"
         echo "🌐 Domain: loudounvelo.com (if DNS configured)"
         echo "📊 GitHub Pages URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+        echo "🔗 Deployment URL: ${{ steps.deployment.outputs.page_url }}"
