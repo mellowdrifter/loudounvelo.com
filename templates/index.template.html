@@ -23,17 +23,67 @@
             transform: translateY(-4px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
         }
+        /* Custom styles for the range slider */
+        .range-slider {
+            position: relative;
+            height: 20px;
+        }
+        .range-slider input[type=range] {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            top: 8px;
+            -webkit-appearance: none;
+            background: none;
+            pointer-events: none;
+        }
+        .range-slider input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            pointer-events: auto;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+        }
+        .range-slider input[type=range]::-moz-range-thumb {
+            pointer-events: auto;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: none;
+        }
+        .slider-track {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            top: 8px;
+            background-color: #d1d5db; /* gray-300 */
+            border-radius: 4px;
+        }
+        .dark .slider-track {
+            background-color: #4b5563; /* gray-600 */
+        }
+        #slider-progress {
+            position: absolute;
+            height: 4px;
+            top: 8px;
+            background-color: #2563eb; /* blue-600 */
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
 
     <div class="container mx-auto p-4 md:p-8">
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <div>
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+            <div class="text-center md:text-left">
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">🚴🏼 Loudoun Velo</h1>
                 <p class="mt-1 text-md text-gray-500 dark:text-gray-400">Rides based in Northern Virginia</p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-col sm:flex-row items-center gap-4">
                 <select id="type-filter" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all">All Types</option>
                     <option value="road">Road</option>
@@ -43,6 +93,20 @@
                 <button id="theme-toggle" class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">Dark Mode</button>
             </div>
         </header>
+
+        <div class="mb-8 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Distance</label>
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <span id="min-dist-label">0 mi</span>
+                <span id="max-dist-label">100 mi</span>
+            </div>
+            <div class="range-slider mt-1">
+                <div class="slider-track"></div>
+                <div id="slider-progress"></div>
+                <input type="range" id="min-dist-slider">
+                <input type="range" id="max-dist-slider">
+            </div>
+        </div>
 
         <main id="routes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Route cards will be injected here -->
@@ -60,15 +124,38 @@
         let useMetric = localStorage.getItem("useMetric") === "true";
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         let filterType = localStorage.getItem("filterType") || "all";
+        let minDistanceFilter, maxDistanceFilter;
 
         const container = document.getElementById('routes-container');
         const typeFilter = document.getElementById('type-filter');
         const unitToggleButton = document.getElementById('unit-toggle');
         const themeToggleButton = document.getElementById('theme-toggle');
+        const minDistSlider = document.getElementById('min-dist-slider');
+        const maxDistSlider = document.getElementById('max-dist-slider');
+        const minDistLabel = document.getElementById('min-dist-label');
+        const maxDistLabel = document.getElementById('max-dist-label');
+        const sliderProgress = document.getElementById('slider-progress');
 
+        const MILE_CONVERSION = 0.621371;
+
+        // Calculate min/max possible distances from all routes
+        const allDistancesKm = allRoutes.map(r => r.distance).filter(d => d > 0);
+        const minPossibleKm = Math.min(...allDistancesKm);
+        const maxPossibleKm = Math.max(...allDistancesKm);
+
+        function kmToDisplay(km) {
+            return useMetric ? km : km * MILE_CONVERSION;
+        }
+
+        function displayToKm(dist) {
+            return useMetric ? dist : dist / MILE_CONVERSION;
+        }
+        
         function formatDistance(km) {
-            if (!km) return "?";
-            return useMetric ? `${km.toFixed(1)} km` : `${(km * 0.621371).toFixed(1)} mi`;
+            if (!km && km !==0) return "?";
+            const dist = useMetric ? km : km * MILE_CONVERSION;
+            const unit = useMetric ? "km" : "mi";
+            return `${dist.toFixed(0)} ${unit}`;
         }
 
         function formatElevation(m) {
@@ -76,21 +163,22 @@
             return useMetric ? `${m} m` : `${Math.round(m * 3.28084)} ft`;
         }
         
-        let charts = {}; // To keep track of chart instances
+        let charts = {};
 
         function renderRoutes() {
-            // Destroy old charts to prevent memory leaks
             Object.values(charts).forEach(chart => chart.destroy());
             charts = {};
 
-            const filteredRoutes = filterType === 'all'
-                ? allRoutes
-                : allRoutes.filter(route => route.type === filterType);
+            const filteredRoutes = allRoutes.filter(route => {
+                const typeMatch = filterType === 'all' || route.type === filterType;
+                const distanceMatch = route.distance >= minDistanceFilter && route.distance <= maxDistanceFilter;
+                return typeMatch && distanceMatch;
+            });
 
             container.innerHTML = '';
 
             if (filteredRoutes.length === 0) {
-                 container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes found.</p>`;
+                 container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes match the selected filters.</p>`;
                 return;
             }
 
@@ -120,16 +208,16 @@
                     const ctx = document.getElementById(`chart-${route.id}`).getContext('2d');
                     
                     const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
-                    const fontColor = isDarkMode ? '#F9FAFB' : '#111827'; // High-contrast colors
+                    const fontColor = isDarkMode ? '#F9FAFB' : '#111827';
                     
                     charts[route.id] = new Chart(ctx, {
                         type: 'line',
                         data: {
-                            labels: route.profile.map(p => useMetric ? p[0].toFixed(1) : (p[0] * 0.621371).toFixed(1)),
+                            labels: route.profile.map(p => useMetric ? p[0].toFixed(1) : (p[0] * MILE_CONVERSION).toFixed(1)),
                             datasets: [{
                                 data: route.profile.map(p => useMetric ? p[1] : Math.round(p[1] * 3.28084)),
-                                borderColor: '#dc2626', // Red
-                                backgroundColor: 'rgba(220, 38, 38, 0.2)', // Transparent Red
+                                borderColor: '#dc2626',
+                                backgroundColor: 'rgba(220, 38, 38, 0.2)',
                                 fill: true,
                                 tension: 0.3,
                                 pointRadius: 0,
@@ -141,26 +229,70 @@
                             maintainAspectRatio: false,
                             plugins: { legend: { display: false }, tooltip: { enabled: false } },
                             scales: {
-                                x: {
-                                    ticks: { color: fontColor, font: { size: 10 }, maxTicksLimit: 6 },
-                                    grid: { color: gridColor }
-                                },
-                                y: {
-                                    ticks: { color: fontColor, font: { size: 10 }, maxTicksLimit: 4 },
-                                    grid: { color: gridColor }
-                                }
+                                x: { ticks: { color: fontColor, font: { size: 10 }, maxTicksLimit: 6 }, grid: { color: gridColor } },
+                                y: { ticks: { color: fontColor, font: { size: 10 }, maxTicksLimit: 4 }, grid: { color: gridColor } }
                             }
                         }
                     });
                 }
             });
         }
+        
+        function updateDistanceSliderUI() {
+            const minDisplay = Math.floor(kmToDisplay(minDistanceFilter));
+            const maxDisplay = Math.ceil(kmToDisplay(maxDistanceFilter));
+            
+            const minPossibleDisplay = Math.floor(kmToDisplay(minPossibleKm));
+            const maxPossibleDisplay = Math.ceil(kmToDisplay(maxPossibleKm));
+
+            minDistSlider.min = maxDistSlider.min = minPossibleDisplay;
+            minDistSlider.max = maxDistSlider.max = maxPossibleDisplay;
+            
+            minDistSlider.value = minDisplay;
+            maxDistSlider.value = maxDisplay;
+            
+            minDistLabel.textContent = formatDistance(displayToKm(minDisplay));
+            maxDistLabel.textContent = formatDistance(displayToKm(maxDisplay));
+            
+            const minPercent = ((minDisplay - minPossibleDisplay) / (maxPossibleDisplay - minPossibleDisplay)) * 100;
+            const maxPercent = ((maxDisplay - minPossibleDisplay) / (maxPossibleDisplay - minPossibleDisplay)) * 100;
+
+            sliderProgress.style.left = `${minPercent}%`;
+            sliderProgress.style.width = `${maxPercent - minPercent}%`;
+        }
+
+        function handleMinSlider() {
+            let minVal = parseInt(minDistSlider.value);
+            let maxVal = parseInt(maxDistSlider.value);
+
+            if (minVal >= maxVal) {
+                minVal = maxVal - 1;
+                minDistSlider.value = minVal;
+            }
+            
+            minDistanceFilter = displayToKm(minVal);
+            updateDistanceSliderUI();
+            renderRoutes();
+        }
+
+        function handleMaxSlider() {
+            let minVal = parseInt(minDistSlider.value);
+            let maxVal = parseInt(maxDistSlider.value);
+
+            if (maxVal <= minVal) {
+                maxVal = minVal + 1;
+                maxDistSlider.value = maxVal;
+            }
+
+            maxDistanceFilter = displayToKm(maxVal);
+            updateDistanceSliderUI();
+            renderRoutes();
+        }
 
         function updateTheme() {
-            // Toggle dark class on the html element for Tailwind
             document.documentElement.classList.toggle('dark', isDarkMode);
             themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
-            renderRoutes(); // Re-render routes to update chart colors
+            renderRoutes();
         }
         
         function updateUnitButton() {
@@ -177,6 +309,7 @@
             useMetric = !useMetric;
             localStorage.setItem('useMetric', useMetric);
             updateUnitButton();
+            updateDistanceSliderUI();
             renderRoutes();
         });
 
@@ -185,13 +318,21 @@
             localStorage.setItem('filterType', filterType);
             renderRoutes();
         });
+        
+        minDistSlider.addEventListener('input', handleMinSlider);
+        maxDistSlider.addEventListener('input', handleMaxSlider);
 
         function initialize() {
+            // Distance sliders reset on each visit
+            minDistanceFilter = minPossibleKm;
+            maxDistanceFilter = maxPossibleKm;
+            
             typeFilter.value = filterType;
             updateUnitButton();
-            // Set initial theme without re-rendering
             document.documentElement.classList.toggle('dark', isDarkMode);
             themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+            
+            updateDistanceSliderUI();
             renderRoutes();
         }
 
@@ -199,4 +340,3 @@
     </script>
 </body>
 </html>
-
