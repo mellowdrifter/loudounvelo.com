@@ -48,11 +48,25 @@ class BikeRoutesBuilder:
         with open(self.rides_file, 'r', encoding='utf-8') as file:
             lines = [line.strip() for line in file.readlines() if line.strip() and not line.strip().startswith('#')]
         
-        urls_to_process = [line.split(',')[0].strip() for line in lines if 'ridewithgps.com' in line]
-        print(f"  Found {len(urls_to_process)} RideWithGPS URLs to process.")
+        routes_to_process = []
+        for line in lines:
+            if 'ridewithgps.com' in line:
+                parts = [part.strip() for part in line.split(',')]
+                url = parts[0]
+                specified_type = parts[1].lower() if len(parts) > 1 else None
+                if specified_type and specified_type not in ['road', 'gravel']:
+                    print(f"    - ⚠️ Invalid route type '{specified_type}' for {url}, defaulting to 'road'.")
+                    specified_type = 'road'
+                routes_to_process.append({'url': url, 'type': specified_type})
+        
+        print(f"  Found {len(routes_to_process)} RideWithGPS URLs to process.")
 
-        for i, url in enumerate(urls_to_process):
-            print(f"  ({i+1}/{len(urls_to_process)}) Processing: {url}")
+        for i, route_info in enumerate(routes_to_process):
+            url = route_info['url']
+            specified_type = route_info['type']
+            print(f"  ({i+1}/{len(routes_to_process)}) Processing: {url}")
+            if specified_type:
+                 print(f"    - Type specified as: {specified_type}")
             try:
                 route_match = re.search(r'/routes/(\d+)', url)
                 if not route_match:
@@ -60,7 +74,7 @@ class BikeRoutesBuilder:
                     continue
                 
                 route_id = route_match.group(1)
-                route_data = self._fetch_from_rwgps_json(route_id)
+                route_data = self._fetch_from_rwgps_json(route_id, specified_type)
                 if route_data:
                     self.routes.append(route_data)
                     print(f"    ✓ Added: {route_data['title']}")
@@ -72,7 +86,7 @@ class BikeRoutesBuilder:
             except Exception as e:
                 print(f"    - ❌ An unexpected error occurred: {e}")
 
-    def _fetch_from_rwgps_json(self, route_id: str) -> Optional[Dict[str, Any]]:
+    def _fetch_from_rwgps_json(self, route_id: str, specified_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
         api_url = f"https://ridewithgps.com/routes/{route_id}.json"
         print("    - Fetching data from RideWithGPS...")
         headers = {'User-Agent': 'LoudounVelo-SiteBuilder/1.0', 'Accept': 'application/json'}
@@ -114,7 +128,7 @@ class BikeRoutesBuilder:
             'title': title,
             'description': route_data.get('description', 'A route from RideWithGPS.'),
             'rwgpsUrl': f'https://ridewithgps.com/routes/{route_id}',
-            'type': 'road', 
+            'type': specified_type or 'road', 
             'distance': round(distance_meters / 1000, 1) if distance_meters else 0, # km
             'elevation': round(elevation_meters) if elevation_meters else 0, # meters
             'image': f'https://ridewithgps.com/routes/{route_id}/full.png',
