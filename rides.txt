@@ -21,3 +21,4 @@ https://ridewithgps.com/routes/51523183, road
 https://ridewithgps.com/routes/37983682, road
 https://ridewithgps.com/routes/51865674, road
 https://ridewithgps.com/routes/46814165, road
+https://ridewithgps.com/routes/49882078, road

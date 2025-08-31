@@ -48,6 +48,8 @@ class BikeRoutesBuilder:
             lines = [line.strip() for line in file if line.strip() and not line.strip().startswith('#')]
         
         print(f"  Found {len(lines)} RideWithGPS URLs to process.")
+        processed_route_ids = set()
+
         for i, line in enumerate(lines):
             parts = [part.strip() for part in line.split(',')]
             url = parts[0]
@@ -61,7 +63,12 @@ class BikeRoutesBuilder:
                 continue
                 
             route_id = route_match.group(1)
-            cache_file = self.routes_dir / f'route-{route_id}.json'
+            
+            if route_id in processed_route_ids:
+                print(f"    - ⚠️ Duplicate route ID {route_id} found, skipping.")
+                continue
+            
+            processed_route_ids.add(route_id)
             
             route_data = self._fetch_from_rwgps_json(route_id)
             if route_data:
