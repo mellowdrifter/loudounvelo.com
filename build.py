@@ -274,43 +274,38 @@ class BikeRoutesBuilder:
             raise Exception(f"Network error: {e}")
 
     def _fetch_from_json(self, route_id: str) -> Dict[str, Any]:
-        """Fetch route data from JSON API"""
         api_url = f"https://ridewithgps.com/routes/{route_id}.json"
         headers = {
             'User-Agent': 'LoudounVelo-SiteBuilder/1.0',
             'Accept': 'application/json'
         }
-        
-        req = urllib.request.Request(api_url, headers=headers)
-        
-        try:
-            with urllib.request.urlopen(req, timeout=10) as response:
-                if response.status != 200:
-                    raise Exception(f"HTTP {response.status}")
-                
-                data = json.loads(response.read().decode('utf-8'))
-                
-                # The fields are top-level, not under 'route'
-                distance = None
-                if data.get('distance'):
-                    distance = round(data['distance'] / 1000, 1)  # meters → km
-                
-                elevation = None
-                if data.get('elevation_gain'):
-                    elevation = round(data['elevation_gain'])  # already in meters
-                
-                return {
-                    'title': data.get('name', f'Route {route_id}'),
-                    'description': data.get('description', 'Route from RideWithGPS'),
-                    'type': 'road',  # Default type
-                    'distance': distance,
-                    'elevation': elevation,
-                    'mapImage': f'https://ridewithgps.com/routes/{route_id}/thumb.png',
-                    'mapImageLarge': f'https://ridewithgps.com/routes/{route_id}/full.png'
-                }
-        except urllib.error.URLError as e:
-            raise Exception(f"Network error: {e}")
 
+        req = urllib.request.Request(api_url, headers=headers)
+
+        with urllib.request.urlopen(req, timeout=10) as response:
+            if response.status != 200:
+                raise Exception(f"HTTP {response.status}")
+
+            data = json.loads(response.read().decode('utf-8'))
+
+            # ✅ fields are top-level
+            distance = None
+            if data.get('distance'):
+                distance = round(data['distance'] / 1000, 1)
+
+            elevation = None
+            if data.get('elevation_gain'):
+                elevation = round(data['elevation_gain'])
+
+            return {
+                'title': data.get('name', f'Route {route_id}'),
+                'description': data.get('description', 'Route from RideWithGPS'),
+                'type': 'road',
+                'distance': distance,
+                'elevation': elevation,
+                'mapImage': f'https://ridewithgps.com/routes/{route_id}/thumb.png',
+                'mapImageLarge': f'https://ridewithgps.com/routes/{route_id}/full.png'
+            }
 
     def _parse_ridewithgps_html(self, html: str, route_id: str) -> Dict[str, Any]:
         """Parse route data from HTML content"""
