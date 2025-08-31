@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{SITE_TITLE}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Custom styles for better aesthetics */
         body {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -18,10 +16,6 @@
         .route-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-        }
-        .badge {
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -56,20 +50,16 @@
     </footer>
 
     <script>
-        // State variables
         let useMetric = localStorage.getItem("useMetric") === "true";
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         let filterType = localStorage.getItem("filterType") || "all";
         let allRoutes = []; 
-        let activeCharts = [];
 
-        // DOM elements
         const container = document.getElementById('routes-container');
         const typeFilter = document.getElementById('type-filter');
         const unitToggleButton = document.getElementById('unit-toggle');
         const themeToggleButton = document.getElementById('theme-toggle');
 
-        // --- Helper Functions ---
         function formatDistance(km) {
             if (!km) return "?";
             return useMetric ? `${km.toFixed(1)} km` : `${(km * 0.621371).toFixed(1)} mi`;
@@ -80,12 +70,7 @@
             return useMetric ? `${m} m` : `${Math.round(m * 3.28084)} ft`;
         }
 
-        // --- Core Rendering Function ---
         function renderRoutes() {
-            // Destroy previous charts to prevent memory leaks
-            activeCharts.forEach(chart => chart.destroy());
-            activeCharts = [];
-
             const filteredRoutes = filterType === 'all'
                 ? allRoutes
                 : allRoutes.filter(route => route.type === filterType);
@@ -99,6 +84,11 @@
 
             filteredRoutes.forEach(route => {
                 const badgeClass = route.type === 'gravel' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white';
+                // Switch between metric and imperial profile images
+                const profileImageUrl = useMetric 
+                    ? route.profileImage 
+                    : route.profileImage.replace('unit_type=metric', 'unit_type=english');
+
                 const cardHTML = `
                     <div class="route-card bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col">
                         <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="block h-48 relative group">
@@ -110,50 +100,16 @@
                                 <span>${formatDistance(route.distance)} / ${formatElevation(route.elevation)} ascent</span>
                                 <span class="${badgeClass} text-xs font-semibold px-2.5 py-1 rounded-full">${route.type}</span>
                             </div>
-                            <div class="mt-4 h-20 flex-grow relative">
-                                <canvas id="chart-${route.id}"></canvas>
+                            <div class="mt-4">
+                                <img src="${profileImageUrl}" alt="Elevation profile for ${route.title}" class="w-full rounded-md bg-gray-200 dark:bg-gray-700">
                             </div>
                         </div>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', cardHTML);
-                
-                // --- Chart Generation ---
-                const chartCanvas = document.getElementById(`chart-${route.id}`);
-                if (chartCanvas && route.profile && route.profile.length > 0) {
-                    const ctx = chartCanvas.getContext('2d');
-                    
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 80);
-                    gradient.addColorStop(0, isDarkMode ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.5)');
-                    gradient.addColorStop(1, isDarkMode ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.05)');
-
-                    const newChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: route.profile.map(p => ''),
-                            datasets: [{
-                                data: route.profile.map(p => useMetric ? p[1] : p[1] * 3.28084),
-                                borderColor: isDarkMode ? '#60a5fa' : '#3b82f6',
-                                backgroundColor: gradient,
-                                fill: true,
-                                borderWidth: 2,
-                                tension: 0.4,
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            elements: { point: { radius: 0 } },
-                            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                            scales: { x: { display: false }, y: { display: false } }
-                        }
-                    });
-                    activeCharts.push(newChart);
-                }
             });
         }
 
-        // --- UI Update and Event Listeners ---
         function updateTheme() {
             document.documentElement.classList.toggle('dark', isDarkMode);
             themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
@@ -167,7 +123,6 @@
             isDarkMode = !isDarkMode;
             localStorage.setItem('isDarkMode', isDarkMode);
             updateTheme();
-            renderRoutes(); // Re-render to update chart colors
         });
         
         unitToggleButton.addEventListener('click', () => {
@@ -183,7 +138,6 @@
             renderRoutes();
         });
 
-        // --- Initial Load ---
         async function initialize() {
             typeFilter.value = filterType;
             updateTheme();

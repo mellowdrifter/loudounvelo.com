@@ -83,7 +83,6 @@ class BikeRoutesBuilder:
                 return None
             data = json.loads(response.read().decode('utf-8'))
 
-        # The route data can be in the root or under a 'route' key.
         route_data = data.get('route', data)
         if not route_data:
             print(f"      - ⚠️ No 'route' object found in JSON for route {route_id}")
@@ -94,39 +93,27 @@ class BikeRoutesBuilder:
             print(f"      - ⚠️ Title not found for route {route_id}")
             return None
 
-        # Extract basic info
         distance_meters = route_data.get('distance', 0)
         elevation_meters = route_data.get('elevation_gain', 0)
+        
+        # Use the direct image URL for the elevation profile as you discovered.
+        profile_image_url = f"https://ridewithgps.com/routes/{route_id}/elevation_profile.png?width=600&height=120&unit_type=metric"
 
-        # Build elevation profile
-        profile = []
-        track_points = route_data.get('track_points', [])
-        if track_points:
-            # 'd' is distance in meters, 'e' is elevation in meters.
-            profile = [[p['d'] / 1000, p['e']] for p in track_points if 'd' in p and 'e' in p]
-            
-            # Downsample for performance
-            if len(profile) > 200:
-                step = max(1, len(profile) // 200)
-                profile = profile[::step]
-        else:
-            print(f"      - ⚠️ No track points found for profile generation for route {route_id}")
 
         return {
             'id': f'route-{route_id}',
             'title': title,
             'description': route_data.get('description', 'A route from RideWithGPS.'),
             'rwgpsUrl': f'https://ridewithgps.com/routes/{route_id}',
-            'type': 'road', # You can enhance this later
+            'type': 'road', 
             'distance': round(distance_meters / 1000, 1) if distance_meters else 0, # km
             'elevation': round(elevation_meters) if elevation_meters else 0, # meters
             'image': f'https://ridewithgps.com/routes/{route_id}/full.png',
-            'profile': profile
+            'profileImage': profile_image_url
         }
 
     def _process_routes(self):
         print("\n🔄 Processing routes for data consistency...")
-        # Sort routes by distance, shortest to longest
         self.routes.sort(key=lambda x: x.get('distance', 0))
 
     def _generate_files(self):
@@ -140,19 +127,16 @@ class BikeRoutesBuilder:
         with open(template_path, 'r', encoding='utf-8') as f:
             template = f.read()
 
-        # Check for placeholder before replacing
         if '{{SITE_TITLE}}' not in template:
              print(f"  ⚠️ {{SITE_TITLE}} placeholder not found in template. Aborting.")
              exit(1)
 
-        # Replace placeholders in the HTML template
         html = template.replace('{{SITE_TITLE}}', 'Loudoun Velo - Local Bike Routes')
 
         with open(self.dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(html)
         print("  ✓ Generated index.html")
 
-        # Write routes data to a separate JSON file
         routes_json = json.dumps(self.routes, indent=2)
         with open(self.dist_dir / 'routes.json', 'w', encoding='utf-8') as f:
             f.write(routes_json)
@@ -160,7 +144,6 @@ class BikeRoutesBuilder:
 
     def _copy_assets(self):
         print("\n📋 Copying assets...")
-        # Create CNAME and .nojekyll for GitHub Pages
         with open(self.dist_dir / 'CNAME', 'w') as f:
             f.write('loudounvelo.com')
         (self.dist_dir / '.nojekyll').touch()
