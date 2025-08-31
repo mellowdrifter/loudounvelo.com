@@ -91,12 +91,12 @@
                     <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="route-card-bg block rounded-lg shadow-lg overflow-hidden h-64 relative group">
                         <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
                         <div class="absolute inset-0 flex flex-col justify-between p-4">
-                            <div class="bg-black/60 rounded-md p-2 self-start">
-                                <h2 class="text-xl font-bold leading-tight text-white">${route.title}</h2>
+                            <div class="self-start">
+                                <h2 class="text-xl font-bold leading-tight text-gray-900 [text-shadow:_1px_1px_3px_rgb(255_255_255_/_90%)]">${route.title}</h2>
                                 <span class="badge ${badgeClass} text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block">${route.type}</span>
                             </div>
                             <div class="flex justify-end text-right">
-                                <div class="text-sm bg-black/60 p-2 rounded-md text-white">
+                                <div class="text-sm text-gray-900 font-semibold [text-shadow:_1px_1px_3px_rgb(255_255_255_/_90%)]">
                                     <div>${formatDistance(route.distance)}</div>
                                     <div>${formatElevation(route.elevation)} ascent</div>
                                 </div>
@@ -110,13 +110,9 @@
 
         // --- UI Update and Event Listeners ---
         function updateTheme() {
-            if (isDarkMode) {
-                document.documentElement.classList.add('dark');
-                themeToggleButton.textContent = 'Light Mode';
-            } else {
-                document.documentElement.classList.remove('dark');
-                themeToggleButton.textContent = 'Dark Mode';
-            }
+            // Use toggle with a boolean to ensure the correct state
+            document.documentElement.classList.toggle('dark', isDarkMode);
+            themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
         }
         
         function updateUnitButton() {
