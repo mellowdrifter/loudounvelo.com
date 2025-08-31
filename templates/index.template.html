@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{SITE_TITLE}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -152,8 +157,8 @@
         }
 
         function updateTheme() {
-            // Toggle dark class on the body element for Tailwind
-            document.body.classList.toggle('dark', isDarkMode);
+            // Toggle dark class on the html element for Tailwind
+            document.documentElement.classList.toggle('dark', isDarkMode);
             themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
             renderRoutes(); // Re-render routes to update chart colors
         }
@@ -185,7 +190,7 @@
             typeFilter.value = filterType;
             updateUnitButton();
             // Set initial theme without re-rendering
-            document.body.classList.toggle('dark', isDarkMode);
+            document.documentElement.classList.toggle('dark', isDarkMode);
             themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
             renderRoutes();
         }
