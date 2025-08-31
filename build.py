@@ -162,11 +162,9 @@ class BikeRoutesBuilder:
                     return None
                 data = json.loads(response.read().decode('utf-8'))
                 
-                # The route details can either be at the top level of the JSON
-                # or nested under a "route" key. This handles both cases.
-                details = data.get('route')
-                if not isinstance(details, dict):
-                    details = data
+                # FIX: Use .get() with a fallback to the top-level dictionary.
+                # This robustly handles both nested and flat JSON responses.
+                details = data.get('route', data)
 
                 title = details.get('name')
                 if not title:
@@ -206,7 +204,6 @@ class BikeRoutesBuilder:
         with open(template_path, 'r', encoding='utf-8') as f:
             template = f.read()
         
-        # *** FIX: Add check to ensure placeholder exists in the template file ***
         if '{{ROUTES_DATA}}' not in template:
             print(f"  ❌ CRITICAL: '{{ROUTES_DATA}}' placeholder not found in {template_path}. Cannot inject route data.")
             exit(1)
@@ -214,16 +211,18 @@ class BikeRoutesBuilder:
         # Sort routes by distance, shortest to longest
         self.routes.sort(key=lambda x: x.get('distance') or 0)
         
+        # Create a clean JSON string and escape any backticks to prevent JS errors
         routes_json = json.dumps(self.routes, indent=2)
+        routes_json_escaped = routes_json.replace('`', '\\`')
         
         # Replace placeholders in the template
-        html = template.replace('{{ROUTES_DATA}}', routes_json)
+        html = template.replace('{{ROUTES_DATA}}', routes_json_escaped)
         html = html.replace('{{SITE_TITLE}}', 'Loudoun Velo - Local Bike Routes')
         
         with open(self.dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(html)
             
-        print("  ✓ Generated index.html")
+        print(f"  ✓ Generated index.html, injecting data for {len(self.routes)} routes.")
 
     def _copy_assets(self):
         """Copies necessary static assets to the dist directory."""
