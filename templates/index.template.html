@@ -90,13 +90,13 @@
                 const cardHTML = `
                     <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="route-card-bg block rounded-lg shadow-lg overflow-hidden h-64 relative group">
                         <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
-                        <div class="absolute inset-0 flex flex-col justify-between p-4 text-white">
-                            <div>
-                                <h2 class="text-xl font-bold leading-tight [text-shadow:_2px_2px_4px_rgb(0_0_0_/_80%)]">${route.title}</h2>
+                        <div class="absolute inset-0 flex flex-col justify-between p-4">
+                            <div class="bg-black/60 rounded-md p-2 self-start">
+                                <h2 class="text-xl font-bold leading-tight text-white">${route.title}</h2>
                                 <span class="badge ${badgeClass} text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block">${route.type}</span>
                             </div>
                             <div class="flex justify-end text-right">
-                                <div class="text-sm [text-shadow:_2px_2px_4px_rgb(0_0_0_/_80%)]">
+                                <div class="text-sm bg-black/60 p-2 rounded-md text-white">
                                     <div>${formatDistance(route.distance)}</div>
                                     <div>${formatElevation(route.elevation)} ascent</div>
                                 </div>
