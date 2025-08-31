@@ -289,19 +289,19 @@ class BikeRoutesBuilder:
                     raise Exception(f"HTTP {response.status}")
                 
                 data = json.loads(response.read().decode('utf-8'))
-                route = data.get('route', {})
                 
+                # The fields are top-level, not under 'route'
                 distance = None
-                if route.get('distance'):
-                    distance = round(route['distance'] / 1000, 1)  # Convert meters to km
+                if data.get('distance'):
+                    distance = round(data['distance'] / 1000, 1)  # meters → km
                 
                 elevation = None
-                if route.get('elevation_gain'):
-                    elevation = round(route['elevation_gain'])
+                if data.get('elevation_gain'):
+                    elevation = round(data['elevation_gain'])  # already in meters
                 
                 return {
-                    'title': route.get('name', f'Route {route_id}'),
-                    'description': route.get('description', 'Route from RideWithGPS'),
+                    'title': data.get('name', f'Route {route_id}'),
+                    'description': data.get('description', 'Route from RideWithGPS'),
                     'type': 'road',  # Default type
                     'distance': distance,
                     'elevation': elevation,
@@ -310,6 +310,7 @@ class BikeRoutesBuilder:
                 }
         except urllib.error.URLError as e:
             raise Exception(f"Network error: {e}")
+
 
     def _parse_ridewithgps_html(self, html: str, route_id: str) -> Dict[str, Any]:
         """Parse route data from HTML content"""
