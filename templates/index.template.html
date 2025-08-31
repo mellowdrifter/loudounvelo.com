@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{SITE_TITLE}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             -webkit-font-smoothing: antialiased;
@@ -50,10 +51,10 @@
     </footer>
 
     <script>
+        const allRoutes = {{ROUTES_DATA}};
         let useMetric = localStorage.getItem("useMetric") === "true";
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         let filterType = localStorage.getItem("filterType") || "all";
-        let allRoutes = []; 
 
         const container = document.getElementById('routes-container');
         const typeFilter = document.getElementById('type-filter');
@@ -69,50 +70,91 @@
             if (!m) return "?";
             return useMetric ? `${m} m` : `${Math.round(m * 3.28084)} ft`;
         }
+        
+        let charts = {}; // To keep track of chart instances
 
         function renderRoutes() {
+            // Destroy old charts to prevent memory leaks
+            Object.values(charts).forEach(chart => chart.destroy());
+            charts = {};
+
             const filteredRoutes = filterType === 'all'
                 ? allRoutes
                 : allRoutes.filter(route => route.type === filterType);
 
             container.innerHTML = '';
 
-            if (filteredRoutes.length === 0 && allRoutes.length > 0) {
-                 container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes found for the selected filter.</p>`;
+            if (filteredRoutes.length === 0) {
+                 container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes found.</p>`;
                 return;
             }
 
             filteredRoutes.forEach(route => {
                 const badgeClass = route.type === 'gravel' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white';
-                // Switch between metric and imperial profile images
-                const profileImageUrl = useMetric 
-                    ? route.profileImage 
-                    : route.profileImage.replace('unit_type=metric', 'unit_type=english');
-
+                
                 const cardHTML = `
                     <div class="route-card bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col">
                         <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="block h-48 relative group">
                             <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
                         </a>
                         <div class="p-4 flex flex-col flex-grow">
-                            <h2 class="text-xl font-bold text-gray-900 dark:text-white leading-tight">${route.title}</h2>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white leading-tight flex-grow">${route.title}</h2>
                             <div class="flex justify-between items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
                                 <span>${formatDistance(route.distance)} / ${formatElevation(route.elevation)} ascent</span>
                                 <span class="${badgeClass} text-xs font-semibold px-2.5 py-1 rounded-full">${route.type}</span>
                             </div>
-                            <div class="mt-4">
-                                <img src="${profileImageUrl}" alt="Elevation profile for ${route.title}" class="w-full rounded-md bg-gray-200 dark:bg-gray-700">
+                            <div class="mt-4 h-24 bg-gray-50 dark:bg-gray-700 rounded-md p-1">
+                               ${route.profile && route.profile.length > 0 ? `<canvas id="chart-${route.id}"></canvas>` : '<div class="flex items-center justify-center h-full text-xs text-gray-400">No elevation data</div>'}
                             </div>
                         </div>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', cardHTML);
+
+                if (route.profile && route.profile.length > 0) {
+                    const ctx = document.getElementById(`chart-${route.id}`).getContext('2d');
+                    
+                    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                    const fontColor = isDarkMode ? '#d1d5db' : '#4b5563';
+                    
+                    charts[route.id] = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: route.profile.map(p => useMetric ? p[0].toFixed(1) : (p[0] * 0.621371).toFixed(1)),
+                            datasets: [{
+                                data: route.profile.map(p => useMetric ? p[1] : Math.round(p[1] * 3.28084)),
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 0,
+                                borderWidth: 1.5,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                            scales: {
+                                x: {
+                                    ticks: { color: fontColor, font: { size: 10 }, maxTicksLimit: 6 },
+                                    grid: { color: gridColor }
+                                },
+                                y: {
+                                    ticks: { color: fontColor, font: { size: 10 }, maxTicksLimit: 4 },
+                                    grid: { color: gridColor }
+                                }
+                            }
+                        }
+                    });
+                }
             });
         }
 
         function updateTheme() {
             document.documentElement.classList.toggle('dark', isDarkMode);
             themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+            renderRoutes(); // Re-render routes to update chart colors
         }
         
         function updateUnitButton() {
@@ -138,20 +180,13 @@
             renderRoutes();
         });
 
-        async function initialize() {
+        function initialize() {
             typeFilter.value = filterType;
-            updateTheme();
             updateUnitButton();
-
-            try {
-                const response = await fetch('./routes.json');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                allRoutes = await response.json();
-                renderRoutes();
-            } catch (error) {
-                console.error("Failed to load or parse routes.json:", error);
-                container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-red-500 font-bold">Error: Could not load route data.</p>`;
-            }
+            // Set initial theme without re-rendering
+            document.documentElement.classList.toggle('dark', isDarkMode);
+            themeToggleButton.textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+            renderRoutes();
         }
 
         initialize();

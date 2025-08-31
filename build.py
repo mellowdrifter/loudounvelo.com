@@ -29,6 +29,7 @@ class BikeRoutesBuilder:
             print("\n✅ Build completed successfully!")
             print(f"📁 Output is in the '{self.dist_dir}' directory.")
             print(f"🌐 Processed {len(self.routes)} routes.")
+
         except Exception as error:
             print(f"❌ Build failed: {error}")
             exit(1)
@@ -96,8 +97,16 @@ class BikeRoutesBuilder:
         distance_meters = route_data.get('distance', 0)
         elevation_meters = route_data.get('elevation_gain', 0)
         
-        # Use the direct image URL for the elevation profile as you discovered.
-        profile_image_url = f"https://ridewithgps.com/routes/{route_id}/elevation_profile.png?width=600&height=120&unit_type=metric"
+        profile = []
+        track_points = route_data.get('track_points', [])
+        if track_points:
+            # 'd' is distance in meters, 'e' is elevation in meters.
+            profile = [[p['d'] / 1000, p['e']] for p in track_points if 'd' in p and 'e' in p]
+            if len(profile) > 200:
+                step = max(1, len(profile) // 200)
+                profile = profile[::step]
+        else:
+             print(f"      - ⚠️ No track points found for profile for route {route_id}")
 
 
         return {
@@ -109,7 +118,7 @@ class BikeRoutesBuilder:
             'distance': round(distance_meters / 1000, 1) if distance_meters else 0, # km
             'elevation': round(elevation_meters) if elevation_meters else 0, # meters
             'image': f'https://ridewithgps.com/routes/{route_id}/full.png',
-            'profileImage': profile_image_url
+            'profile': profile
         }
 
     def _process_routes(self):
@@ -127,20 +136,19 @@ class BikeRoutesBuilder:
         with open(template_path, 'r', encoding='utf-8') as f:
             template = f.read()
 
-        if '{{SITE_TITLE}}' not in template:
-             print(f"  ⚠️ {{SITE_TITLE}} placeholder not found in template. Aborting.")
+        if '{{ROUTES_DATA}}' not in template:
+             print(f"  ⚠️ {{ROUTES_DATA}} placeholder not found in template. Aborting.")
              exit(1)
+        
+        routes_json = json.dumps(self.routes, indent=2)
 
         html = template.replace('{{SITE_TITLE}}', 'Loudoun Velo - Local Bike Routes')
+        html = html.replace('{{ROUTES_DATA}}', routes_json)
 
         with open(self.dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(html)
-        print("  ✓ Generated index.html")
+        print("  ✓ Generated index.html with embedded data.")
 
-        routes_json = json.dumps(self.routes, indent=2)
-        with open(self.dist_dir / 'routes.json', 'w', encoding='utf-8') as f:
-            f.write(routes_json)
-        print("  ✓ Generated routes.json")
 
     def _copy_assets(self):
         print("\n📋 Copying assets...")
