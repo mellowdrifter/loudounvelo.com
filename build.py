@@ -16,7 +16,6 @@ class BikeRoutesBuilder:
         self.rides_file = Path('./rides.txt')
         self.routes_dir = Path('./routes')
         self.dist_dir = Path('./dist')
-        # *** FIX: Pointing back to the correct templates directory ***
         self.templates_dir = Path('./templates') 
         self.routes: List[Dict[str, Any]] = []
 
@@ -110,7 +109,6 @@ class BikeRoutesBuilder:
                         'type': specified_type or fetched_data.get('type', 'road'),
                         'distance': fetched_data.get('distance'),
                         'elevation': fetched_data.get('elevation'),
-                        # *** CHANGE: Use the large map image for better quality ***
                         'image': fetched_data.get('mapImageLarge', fetched_data.get('mapImage')),
                     }
                     self._ensure_directory_exists(self.routes_dir)
@@ -118,7 +116,6 @@ class BikeRoutesBuilder:
                         json.dump(route_data, f, indent=2)
                     print("    - Data fetched and cached.")
 
-                # If a type was specified in rides.txt, make sure it overrides the fetched/cached one
                 if specified_type and route_data.get('type') != specified_type:
                     route_data['type'] = specified_type
                     print(f"    - Overriding type to '{specified_type}'.")
@@ -164,7 +161,9 @@ class BikeRoutesBuilder:
                     raise Exception(f"HTTP {response.status}")
                 data = json.loads(response.read().decode('utf-8'))
                 
-                route = data.get('route', {})
+                # FIX: Handle cases where data is not nested under 'route' key
+                route = data.get('route', data)
+                
                 distance_km = round(route['distance'] / 1000, 1) if route.get('distance') else None
                 elevation_m = round(route['elevation_gain']) if route.get('elevation_gain') else None
 
@@ -237,3 +236,4 @@ class BikeRoutesBuilder:
 if __name__ == '__main__':
     builder = BikeRoutesBuilder()
     builder.build()
+
