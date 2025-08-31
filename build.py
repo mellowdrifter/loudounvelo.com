@@ -16,7 +16,8 @@ class BikeRoutesBuilder:
         self.rides_file = Path('./rides.txt')
         self.routes_dir = Path('./routes')
         self.dist_dir = Path('./dist')
-        self.templates_dir = Path('.') # Template is now in root
+        # *** FIX: Pointing back to the correct templates directory ***
+        self.templates_dir = Path('./templates') 
         self.routes: List[Dict[str, Any]] = []
 
     def build(self):
