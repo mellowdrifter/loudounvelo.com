@@ -5,5 +5,13 @@
 # Lines starting with # are comments and will be ignored
 
 # Add your actual RideWithGPS URLs below this line:
-https://ridewithgps.com/routes/51848673, gravel
-https://ridewithgps.com/routes/42639454, road
+https://ridewithgps.com/routes/51697526, road
+https://ridewithgps.com/routes/50759349, road
+https://ridewithgps.com/routes/45763380, road
+https://ridewithgps.com/routes/48398162, road
+https://ridewithgps.com/routes/39197954, road
+https://ridewithgps.com/routes/44739749, road
+https://ridewithgps.com/routes/39485933, road
+https://ridewithgps.com/routes/43603386, road
+https://ridewithgps.com/routes/43994347, road
+https://ridewithgps.com/routes/48477940, road
