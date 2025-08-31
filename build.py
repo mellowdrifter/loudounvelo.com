@@ -234,37 +234,48 @@ class BikeRoutesBuilder:
             return self._fetch_from_json(route_id)
 
     def _fetch_from_json(self, route_id: str) -> Dict[str, Any]:
+        """Fetch route data from RideWithGPS public JSON"""
         api_url = f"https://ridewithgps.com/routes/{route_id}.json"
         headers = {
-            'User-Agent': 'LoudounVelo-SiteBuilder/1.0',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114 Safari/537.36',
             'Accept': 'application/json'
         }
         
         req = urllib.request.Request(api_url, headers=headers)
-        
-        with urllib.request.urlopen(req, timeout=10) as response:
-            if response.status != 200:
-                raise Exception(f"HTTP {response.status}")
-            
-            data = json.loads(response.read().decode('utf-8'))
-            
-            distance = None
-            if data.get('distance'):
-                distance = round(data['distance'] / 1000, 1)
-            
-            elevation = None
-            if data.get('elevation_gain'):
-                elevation = round(data['elevation_gain'])
-            
-            return {
-                'title': data.get('name', f'Route {route_id}'),
-                'description': data.get('description', 'Route from RideWithGPS'),
-                'type': 'road',
-                'distance': distance or 0,
-                'elevation': elevation or 0,
-                'mapImage': f'https://ridewithgps.com/routes/{route_id}/thumb.png',
-                'mapImageLarge': f'https://ridewithgps.com/routes/{route_id}/full.png'
-            }
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status != 200:
+                    raise Exception(f"HTTP {response.status}")
+                
+                raw = response.read().decode('utf-8')
+                try:
+                    data = json.loads(raw)
+                except Exception as e:
+                    raise Exception(f"JSON parse error: {e}, content: {raw[:200]}")
+                
+                # ✅ RideWithGPS JSON has top-level fields
+                distance = None
+                if data.get('distance'):
+                    distance = round(data['distance'] / 1000, 1)  # meters → km
+                
+                elevation = None
+                if data.get('elevation_gain'):
+                    elevation = round(data['elevation_gain'])  # meters
+                
+                return {
+                    'title': data.get('name', f'Route {route_id}'),
+                    'description': data.get('description', 'Route from RideWithGPS'),
+                    'type': 'road',
+                    'distance': distance or 0,
+                    'elevation': elevation or 0,
+                    'mapImage': f'https://ridewithgps.com/routes/{route_id}/thumb.png',
+                    'mapImageLarge': f'https://ridewithgps.com/routes/{route_id}/full.png'
+                }
+        except urllib.error.HTTPError as e:
+            raise Exception(f"HTTP error {e.code} fetching {api_url}")
+        except urllib.error.URLError as e:
+            raise Exception(f"Network error: {e}")
+
 
     def _fetch_from_html(self, url: str, route_id: str) -> Dict[str, Any]:
         headers = {
