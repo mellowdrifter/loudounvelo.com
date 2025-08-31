@@ -200,11 +200,16 @@ class BikeRoutesBuilder:
         print("\n🎨 Generating HTML file...")
         template_path = self.templates_dir / 'index.template.html'
         if not template_path.exists():
-            print(f"  ⚠️ Template not found at {template_path}. Aborting.")
+            print(f"  ❌ CRITICAL: Template not found at {template_path}. Aborting.")
             exit(1)
             
         with open(template_path, 'r', encoding='utf-8') as f:
             template = f.read()
+        
+        # *** FIX: Add check to ensure placeholder exists in the template file ***
+        if '{{ROUTES_DATA}}' not in template:
+            print(f"  ❌ CRITICAL: '{{ROUTES_DATA}}' placeholder not found in {template_path}. Cannot inject route data.")
+            exit(1)
 
         # Sort routes by distance, shortest to longest
         self.routes.sort(key=lambda x: x.get('distance') or 0)
