@@ -100,7 +100,7 @@
                 const cardHTML = `
                     <div class="route-card bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col">
                         <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="block h-48 relative group">
-                            <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
+                            <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-contain bg-center bg-no-repeat transition-transform duration-300 group-hover:scale-105"></div>
                         </a>
                         <div class="p-4 flex flex-col flex-grow">
                             <h2 class="text-xl font-bold text-gray-900 dark:text-white leading-tight flex-grow">${route.title}</h2>
