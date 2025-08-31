@@ -17,25 +17,36 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .header h1 {
       margin: 0;
+      font-size: 1.5rem;
     }
-    .buttons {
+    .controls {
       display: flex;
       gap: 10px;
+      align-items: center;
     }
-    .btn {
+    .btn, select {
       padding: 6px 12px;
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn {
       background: #007acc;
       color: #fff;
       transition: background 0.2s;
     }
     .btn:hover {
       background: #005f99;
+    }
+    select {
+      background: #fff;
+      border: 1px solid #ccc;
     }
     .routes-grid {
       display: grid;
@@ -72,6 +83,24 @@
       color: #555;
       font-size: 0.9rem;
       margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #fff;
+    }
+    .badge-road {
+      background: #007acc;
+    }
+    .badge-gravel {
+      background: #2e8b57;
     }
     .route-description {
       flex-grow: 1;
@@ -104,12 +133,22 @@
     body.dark .route-link {
       color: #4aa3ff;
     }
+    body.dark select {
+      background: #333;
+      color: #eee;
+      border: 1px solid #555;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <h1>Loudoun Velo - Local Bike Routes</h1>
-    <div class="buttons">
+    <div class="controls">
+      <select id="type-filter">
+        <option value="all">All Types</option>
+        <option value="road">Road</option>
+        <option value="gravel">Gravel</option>
+      </select>
       <button id="unit-toggle" class="btn">Switch to km/m</button>
       <button id="theme-toggle" class="btn">Dark Mode</button>
     </div>
@@ -123,6 +162,7 @@
     // Load preferences from localStorage
     let useMetric = localStorage.getItem("useMetric") === "true";
     let darkMode = localStorage.getItem("darkMode") === "true";
+    let filterType = localStorage.getItem("filterType") || "all";
 
     // Apply dark mode class on load
     if (darkMode) {
@@ -134,6 +174,9 @@
     document.getElementById("unit-toggle").innerText = useMetric
       ? "Switch to mi/ft"
       : "Switch to km/m";
+
+    // Set filter dropdown
+    document.getElementById("type-filter").value = filterType;
 
     function formatDistance(km) {
       if (!km) return "?";
@@ -152,15 +195,23 @@
     function renderRoutes() {
       const container = document.getElementById("routes-container");
       container.innerHTML = "";
-      routesData.forEach(route => {
+
+      let filteredRoutes = routesData;
+      if (filterType !== "all") {
+        filteredRoutes = routesData.filter(r => r.type === filterType);
+      }
+
+      filteredRoutes.forEach(route => {
         const card = document.createElement("div");
         card.className = "route-card";
+        const badgeClass = route.type === "gravel" ? "badge-gravel" : "badge-road";
         card.innerHTML = `
           <img src="${route.image}" alt="${route.title}" class="route-image" />
           <div class="route-content">
             <h2 class="route-title">${route.title}</h2>
             <div class="route-meta">
-              ${formatDistance(route.distance)} • ${formatElevation(route.elevation)} • ${route.type}
+              ${formatDistance(route.distance)} • ${formatElevation(route.elevation)}
+              <span class="badge ${badgeClass}">${route.type}</span>
             </div>
             <p class="route-description">${route.description || ""}</p>
             <a href="${route.rwgpsUrl}" target="_blank" class="route-link">View on RideWithGPS</a>
@@ -188,6 +239,13 @@
       document.getElementById("theme-toggle").innerText = darkMode
         ? "Light Mode"
         : "Dark Mode";
+    });
+
+    // Filter dropdown
+    document.getElementById("type-filter").addEventListener("change", (e) => {
+      filterType = e.target.value;
+      localStorage.setItem("filterType", filterType);
+      renderRoutes();
     });
 
     renderRoutes();
