@@ -28,7 +28,10 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Loudoun Velo Routes</h1>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">🚴🏼 Loudoun Velo</h1>
+                <p class="mt-1 text-md text-gray-500 dark:text-gray-400">Rides based in Northern Virginia</p>
+            </div>
             <div class="flex items-center gap-4">
                 <select id="type-filter" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="all">All Types</option>
@@ -44,6 +47,12 @@
             <!-- Route cards will be injected here -->
         </main>
     </div>
+
+    <footer class="text-center py-8">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+            Made with ❤️ for the NoVA cycling community by <a href="https://www.strava.com/athletes/23573109" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">Darren O'Connor</a>
+        </p>
+    </footer>
 
     <script>
         // State variables
@@ -92,11 +101,11 @@
                         <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
                         <div class="absolute inset-0 flex flex-col justify-between p-4">
                             <div class="self-start">
-                                <h2 class="text-xl font-bold leading-tight text-gray-700 [text-shadow:_1px_1px_3px_rgb(255_255_255_/_90%)]">${route.title}</h2>
+                                <h2 class="text-2xl font-bold leading-tight text-gray-700 [text-shadow:_1px_1px_3px_rgb(255_255_255_/_90%)]">${route.title}</h2>
                                 <span class="badge ${badgeClass} text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block">${route.type}</span>
                             </div>
                             <div class="flex justify-end text-right">
-                                <div class="text-sm text-gray-700 font-semibold [text-shadow:_1px_1px_3px_rgb(255_255_255_/_90%)]">
+                                <div class="text-base text-gray-700 font-semibold [text-shadow:_1px_1px_3px_rgb(255_255_255_/_90%)]">
                                     <div>${formatDistance(route.distance)}</div>
                                     <div>${formatElevation(route.elevation)} ascent</div>
                                 </div>
