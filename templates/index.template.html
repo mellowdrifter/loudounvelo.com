@@ -3,141 +3,29 @@
 <head>
   <meta charset="utf-8">
   <title>{{SITE_TITLE}}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #fafafa;
-      color: #222;
-      transition: background 0.3s, color 0.3s;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-    }
-    .controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .btn, select {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .btn {
-      background: #007acc;
-      color: #fff;
-      transition: background 0.2s;
-    }
-    .btn:hover {
-      background: #005f99;
-    }
-    select {
-      background: #fff;
-      border: 1px solid #ccc;
-    }
-    .routes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 20px;
-    }
-    .route-card {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transition: background 0.3s, color 0.3s;
-    }
-    .route-image {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      border-bottom: 1px solid #ddd;
-    }
-    .route-content {
-      padding: 15px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .route-title {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin: 0 0 8px;
-    }
-    .route-meta {
-      color: #555;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      color: #fff;
-    }
-    .badge-road {
-      background: #007acc;
-    }
-    .badge-gravel {
-      background: #2e8b57;
-    }
-    .route-description {
-      flex-grow: 1;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-    }
-    .route-link {
-      text-decoration: none;
-      color: #007acc;
-      font-weight: bold;
-      align-self: flex-start;
-    }
-    .route-link:hover {
-      text-decoration: underline;
-    }
-
-    /* Dark theme */
-    body.dark {
-      background: #1e1e1e;
-      color: #eee;
-    }
-    body.dark .route-card {
-      background: #2b2b2b;
-      color: #eee;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-    }
-    body.dark .route-meta {
-      color: #bbb;
-    }
-    body.dark .route-link {
-      color: #4aa3ff;
-    }
-    body.dark select {
-      background: #333;
-      color: #eee;
-      border: 1px solid #555;
-    }
+    body {font-family: Arial, sans-serif; margin:0; padding:20px; background:#fafafa; color:#222; transition:background .3s,color .3s;}
+    .header {display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+    .controls {display:flex;gap:10px;align-items:center;}
+    .btn,select{padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-size:.9rem;}
+    .btn{background:#007acc;color:#fff;}
+    select{background:#fff;border:1px solid #ccc;}
+    .routes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;}
+    .route-card{background:#fff;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.15);overflow:hidden;display:flex;flex-direction:column;}
+    .route-image{width:100%;height:200px;object-fit:cover;}
+    .route-content{padding:15px;flex:1;display:flex;flex-direction:column;}
+    .route-title{font-size:1.2rem;font-weight:bold;margin:0 0 8px;}
+    .route-meta{color:#555;font-size:.9rem;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .badge{padding:2px 8px;border-radius:6px;font-size:.8rem;font-weight:bold;color:#fff;}
+    .badge-road{background:#007acc;}
+    .badge-gravel{background:#2e8b57;}
+    .route-description{flex-grow:1;font-size:.9rem;margin-bottom:12px;}
+    .route-link{text-decoration:none;color:#007acc;font-weight:bold;align-self:flex-start;}
+    .chart-container{height:100px;}
+    body.dark{background:#1e1e1e;color:#eee;}
+    body.dark .route-card{background:#2b2b2b;color:#eee;}
+    body.dark select{background:#333;color:#eee;border:1px solid #555;}
   </style>
 </head>
 <body>
@@ -153,101 +41,65 @@
       <button id="theme-toggle" class="btn">Dark Mode</button>
     </div>
   </div>
-
   <div class="routes-grid" id="routes-container"></div>
-
   <script>
     const routesData = {{ROUTES_DATA}};
-
-    // Load preferences from localStorage
     let useMetric = localStorage.getItem("useMetric") === "true";
     let darkMode = localStorage.getItem("darkMode") === "true";
     let filterType = localStorage.getItem("filterType") || "all";
 
-    // Apply dark mode class on load
-    if (darkMode) {
-      document.body.classList.add("dark");
-      document.getElementById("theme-toggle").innerText = "Light Mode";
-    }
+    if (darkMode) {document.body.classList.add("dark");document.getElementById("theme-toggle").innerText="Light Mode";}
+    document.getElementById("unit-toggle").innerText=useMetric?"Switch to mi/ft":"Switch to km/m";
+    document.getElementById("type-filter").value=filterType;
 
-    // Set correct label for unit toggle on load
-    document.getElementById("unit-toggle").innerText = useMetric
-      ? "Switch to mi/ft"
-      : "Switch to km/m";
+    function formatDistance(km){if(!km)return"?";return useMetric?`${km.toFixed(1)} km`:`${(km*0.621371).toFixed(1)} mi`;}
+    function formatElevation(m){if(!m)return"?";return useMetric?`${m} m`:`${Math.round(m*3.28084)} ft`;}
 
-    // Set filter dropdown
-    document.getElementById("type-filter").value = filterType;
-
-    function formatDistance(km) {
-      if (!km) return "?";
-      return useMetric
-        ? `${km.toFixed(1)} km`
-        : `${(km * 0.621371).toFixed(1)} mi`;
-    }
-
-    function formatElevation(m) {
-      if (!m) return "?";
-      return useMetric
-        ? `${m} m`
-        : `${Math.round(m * 3.28084)} ft`;
-    }
-
-    function renderRoutes() {
-      const container = document.getElementById("routes-container");
-      container.innerHTML = "";
-
-      let filteredRoutes = routesData;
-      if (filterType !== "all") {
-        filteredRoutes = routesData.filter(r => r.type === filterType);
-      }
-
-      filteredRoutes.forEach(route => {
-        const card = document.createElement("div");
-        card.className = "route-card";
-        const badgeClass = route.type === "gravel" ? "badge-gravel" : "badge-road";
-        card.innerHTML = `
-          <img src="${route.image}" alt="${route.title}" class="route-image" />
+    function renderRoutes(){
+      const container=document.getElementById("routes-container");
+      container.innerHTML="";
+      let filtered=routesData;
+      if(filterType!=="all"){filtered=routesData.filter(r=>r.type===filterType);}
+      filtered.forEach(route=>{
+        const card=document.createElement("div");card.className="route-card";
+        const badgeClass=route.type==="gravel"?"badge-gravel":"badge-road";
+        card.innerHTML=`
+          <img src="${route.image}" class="route-image"/>
           <div class="route-content">
             <h2 class="route-title">${route.title}</h2>
             <div class="route-meta">
               ${formatDistance(route.distance)} • ${formatElevation(route.elevation)}
               <span class="badge ${badgeClass}">${route.type}</span>
             </div>
-            <p class="route-description">${route.description || ""}</p>
+            <p class="route-description">${route.description||""}</p>
+            <div class="chart-container"><canvas id="chart-${route.id}"></canvas></div>
             <a href="${route.rwgpsUrl}" target="_blank" class="route-link">View on RideWithGPS</a>
-          </div>
-        `;
+          </div>`;
         container.appendChild(card);
+        if(route.profile&&route.profile.length>0){
+          const ctx=card.querySelector(`#chart-${route.id}`).getContext("2d");
+          new Chart(ctx,{
+            type:"line",
+            data:{
+              labels:route.profile.map(p=>useMetric?p[0].toFixed(1):(p[0]*0.621371).toFixed(1)),
+              datasets:[{data:route.profile.map(p=>useMetric?p[1]:Math.round(p[1]*3.28084)),borderColor:"#007acc",backgroundColor:"rgba(0,122,204,0.2)",fill:true,tension:0.3,pointRadius:0}]
+            },
+            options:{
+              responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{display:false}},
+              scales:{
+                x:{title:{display:true,text:useMetric?"Distance (km)":"Distance (mi)"},ticks:{maxTicksLimit:6}},
+                y:{title:{display:true,text:useMetric?"Elevation (m)":"Elevation (ft)"},ticks:{maxTicksLimit:5}}
+              }
+            }
+          });
+        }
       });
     }
 
-    // Toggle units
-    document.getElementById("unit-toggle").addEventListener("click", () => {
-      useMetric = !useMetric;
-      localStorage.setItem("useMetric", useMetric);
-      document.getElementById("unit-toggle").innerText = useMetric
-        ? "Switch to mi/ft"
-        : "Switch to km/m";
-      renderRoutes();
-    });
-
-    // Toggle theme
-    document.getElementById("theme-toggle").addEventListener("click", () => {
-      darkMode = !darkMode;
-      localStorage.setItem("darkMode", darkMode);
-      document.body.classList.toggle("dark", darkMode);
-      document.getElementById("theme-toggle").innerText = darkMode
-        ? "Light Mode"
-        : "Dark Mode";
-    });
-
-    // Filter dropdown
-    document.getElementById("type-filter").addEventListener("change", (e) => {
-      filterType = e.target.value;
-      localStorage.setItem("filterType", filterType);
-      renderRoutes();
-    });
-
+    document.getElementById("unit-toggle").addEventListener("click",()=>{useMetric=!useMetric;localStorage.setItem("useMetric",useMetric);document.getElementById("unit-toggle").innerText=useMetric?"Switch to mi/ft":"Switch to km/m";renderRoutes();});
+    document.getElementById("theme-toggle").addEventListener("click",()=>{darkMode=!darkMode;localStorage.setItem("darkMode",darkMode);document.body.classList.toggle("dark",darkMode);document.getElementById("theme-toggle").innerText=darkMode?"Light Mode":"Dark Mode";});
+    document.getElementById("type-filter").addEventListener("change",e=>{filterType=e.target.value;localStorage.setItem("filterType",filterType);renderRoutes();});
     renderRoutes();
   </script>
 </body>
