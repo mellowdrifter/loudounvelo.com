@@ -97,8 +97,8 @@ class BikeRoutesBuilder:
                 else:
                     print("    - Fetching data from RideWithGPS...")
                     fetched_data = self._fetch_from_rwgps_json(route_id)
-                    if not fetched_data or not fetched_data.get('title'):
-                        print("    ⚠️ Could not fetch valid route data, skipping.")
+                    if not fetched_data:
+                        print("    ⚠️ Fetch returned no data, skipping.")
                         continue
                     
                     route_data = {
@@ -158,18 +158,30 @@ class BikeRoutesBuilder:
             req = urllib.request.Request(api_url, headers=headers)
             with urllib.request.urlopen(req, timeout=15) as response:
                 if response.status != 200:
-                    raise Exception(f"HTTP {response.status}")
+                    print(f"    - Received HTTP {response.status} from API. Skipping.")
+                    return None
                 data = json.loads(response.read().decode('utf-8'))
                 
-                # FIX: Handle cases where data is not nested under 'route' key
-                route = data.get('route', data)
+                # The route details can either be at the top level of the JSON
+                # or nested under a "route" key. This handles both cases.
+                details = data.get('route')
+                if not isinstance(details, dict):
+                    details = data
+
+                title = details.get('name')
+                if not title:
+                    print(f"    ⚠️ Could not find 'name' in route data for ID {route_id}. Using fallback title.")
+                    title = f'Route {route_id}'
+
+                distance_m = details.get('distance', 0)
+                elevation_m_gain = details.get('elevation_gain', 0)
                 
-                distance_km = round(route['distance'] / 1000, 1) if route.get('distance') else None
-                elevation_m = round(route['elevation_gain']) if route.get('elevation_gain') else None
+                distance_km = round(distance_m / 1000, 1) if distance_m else 0
+                elevation_m = round(elevation_m_gain) if elevation_m_gain else 0
 
                 return {
-                    'title': route.get('name', f'Route {route_id}'),
-                    'description': route.get('description', 'A scenic route from RideWithGPS.'),
+                    'title': title,
+                    'description': details.get('description', 'A scenic route from RideWithGPS.'),
                     'type': 'road', # Default type
                     'distance': distance_km,
                     'elevation': elevation_m,
@@ -236,4 +248,3 @@ class BikeRoutesBuilder:
 if __name__ == '__main__':
     builder = BikeRoutesBuilder()
     builder.build()
-
