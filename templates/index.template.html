@@ -114,8 +114,8 @@
                 if (route.profile && route.profile.length > 0) {
                     const ctx = document.getElementById(`chart-${route.id}`).getContext('2d');
                     
-                    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-                    const fontColor = isDarkMode ? '#d1d5db' : '#1f2937'; // Darker text for light mode
+                    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+                    const fontColor = isDarkMode ? '#e5e7eb' : '#374151'; // Brighter text for dark, strong dark for light
                     
                     charts[route.id] = new Chart(ctx, {
                         type: 'line',
