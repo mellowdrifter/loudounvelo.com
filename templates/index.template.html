@@ -18,9 +18,6 @@
             transform: translateY(-4px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
         }
-        .route-card-content {
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 20%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0) 100%);
-        }
         .badge {
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
@@ -49,13 +46,11 @@
     </div>
 
     <script>
-        // This is the placeholder where the Python script will inject the route data.
-        const allRoutes = {{ROUTES_DATA}};
-
         // State variables
         let useMetric = localStorage.getItem("useMetric") === "true";
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         let filterType = localStorage.getItem("filterType") || "all";
+        let allRoutes = []; // This will be populated by fetching routes.json
 
         // DOM elements
         const container = document.getElementById('routes-container');
@@ -76,33 +71,32 @@
 
         // --- Core Rendering Function ---
         function renderRoutes() {
-            // 1. Filter routes based on the current selection
             const filteredRoutes = filterType === 'all'
                 ? allRoutes
                 : allRoutes.filter(route => route.type === filterType);
 
-            // 2. Clear the existing content
             container.innerHTML = '';
 
-            // 3. Check if there are any routes to display
             if (filteredRoutes.length === 0) {
-                container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes found for the selected filter.</p>`;
+                // Avoid showing this message before data has loaded
+                if (allRoutes.length > 0) {
+                     container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes found for the selected filter.</p>`;
+                }
                 return;
             }
 
-            // 4. Create and append a card for each route
             filteredRoutes.forEach(route => {
                 const badgeClass = route.type === 'gravel' ? 'bg-green-600/80 text-white' : 'bg-blue-600/80 text-white';
                 const cardHTML = `
                     <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="route-card-bg block rounded-lg shadow-lg overflow-hidden h-64 relative group">
                         <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
-                        <div class="absolute inset-0 route-card-content flex flex-col justify-between p-4 text-white">
+                        <div class="absolute inset-0 flex flex-col justify-between p-4 text-white">
                             <div>
-                                <h2 class="text-xl font-bold leading-tight">${route.title}</h2>
+                                <h2 class="text-xl font-bold leading-tight [text-shadow:_2px_2px_4px_rgb(0_0_0_/_80%)]">${route.title}</h2>
                                 <span class="badge ${badgeClass} text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block">${route.type}</span>
                             </div>
                             <div class="flex justify-end text-right">
-                                <div class="text-sm">
+                                <div class="text-sm [text-shadow:_2px_2px_4px_rgb(0_0_0_/_80%)]">
                                     <div>${formatDistance(route.distance)}</div>
                                     <div>${formatElevation(route.elevation)} ascent</div>
                                 </div>
@@ -149,11 +143,25 @@
         });
 
         // --- Initial Load ---
-        function initialize() {
+        async function initialize() {
+            // Set initial UI state from localStorage
             typeFilter.value = filterType;
             updateTheme();
             updateUnitButton();
-            renderRoutes();
+
+            // Fetch data and then render
+            try {
+                // Fetch the generated JSON file
+                const response = await fetch('./routes.json');
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok: ${response.statusText}`);
+                }
+                allRoutes = await response.json();
+                renderRoutes();
+            } catch (error) {
+                console.error("Failed to load or parse routes.json:", error);
+                container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-red-500 font-bold">Error: Could not load route data. Please check if 'dist/routes.json' was generated correctly.</p>`;
+            }
         }
 
         initialize();
@@ -161,4 +169,3 @@
     </script>
 </body>
 </html>
-

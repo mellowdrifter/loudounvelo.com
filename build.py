@@ -26,7 +26,7 @@ class BikeRoutesBuilder:
             self._ensure_directory_exists(self.dist_dir)
             self._load_routes()
             self._process_routes()
-            self._generate_html()
+            self._generate_output_files()
             self._copy_assets()
             print("\n✅ Build completed successfully!")
             print(f"📁 Output is in the '{self.dist_dir}' directory.")
@@ -162,6 +162,7 @@ class BikeRoutesBuilder:
                     return None
                 data = json.loads(response.read().decode('utf-8'))
                 
+                # This robustly handles different JSON structures from the API.
                 details = data.get('route', data)
 
                 title = details.get('name')
@@ -191,32 +192,33 @@ class BikeRoutesBuilder:
             print(f"    - Unexpected error fetching {api_url}: {e}")
             return None
 
-    def _generate_html(self):
-        """Generates the final HTML file from the template and route data."""
-        print("\n🎨 Generating HTML file...")
+    def _generate_output_files(self):
+        """Generates the final HTML and JSON files."""
+        print("\n🎨 Generating HTML and JSON files...")
+        
+        # Sort routes by distance, shortest to longest
+        self.routes.sort(key=lambda x: x.get('distance') or 0)
+        
+        # Write the routes data to routes.json
+        routes_json = json.dumps(self.routes, indent=2)
+        with open(self.dist_dir / 'routes.json', 'w', encoding='utf-8') as f:
+            f.write(routes_json)
+        print(f"  ✓ Generated routes.json with {len(self.routes)} routes.")
+
+        # Read the template
         template_path = self.templates_dir / 'index.template.html'
         if not template_path.exists():
             print(f"  ❌ CRITICAL: Template not found at {template_path}. Aborting.")
             exit(1)
-            
         with open(template_path, 'r', encoding='utf-8') as f:
             template = f.read()
         
-        if '{{ROUTES_DATA}}' not in template:
-            print(f"  ❌ CRITICAL: '{{ROUTES_DATA}}' placeholder not found in {template_path}. Cannot inject route data.")
-            exit(1)
-
-        self.routes.sort(key=lambda x: x.get('distance') or 0)
-        
-        routes_json = json.dumps(self.routes, indent=2)
-        
-        html = template.replace('{{ROUTES_DATA}}', routes_json)
-        html = html.replace('{{SITE_TITLE}}', 'Loudoun Velo - Local Bike Routes')
-        
+        # Prepare and write the HTML file (no data injection needed anymore)
+        html = template.replace('{{SITE_TITLE}}', 'Loudoun Velo - Local Bike Routes')
         with open(self.dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(html)
-            
-        print(f"  ✓ Generated index.html, injecting data for {len(self.routes)} routes.")
+        print(f"  ✓ Generated index.html.")
+
 
     def _copy_assets(self):
         """Copies necessary static assets to the dist directory."""
