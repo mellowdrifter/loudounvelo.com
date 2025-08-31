@@ -1,168 +1,164 @@
 <!DOCTYPE html>
-<html lang="en" class="dark"> <!-- Start in dark mode by default -->
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{SITE_TITLE}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
     <style>
-        /* Simple scrollbar styling for a more modern look */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        /* Custom styles for better aesthetics */
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .route-card-bg {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .route-card-bg:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .route-card-content {
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 20%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0) 100%);
+        }
+        .badge {
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 font-sans antialiased">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
 
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-
-        <!-- Header Section -->
-        <header class="text-center mb-12">
-            <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">Loudoun Velo</h1>
-            <p class="mt-3 text-lg text-gray-400 max-w-2xl mx-auto">A curated collection of the best local cycling routes in and around Loudoun County, Virginia.</p>
-        </header>
-
-        <!-- Controls Section -->
-        <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-12">
-            <div class="relative">
-                 <select id="type-filter" class="appearance-none w-48 bg-gray-800 border border-gray-700 text-white rounded-lg py-2 px-4 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                    <option value="all">All Route Types</option>
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Loudoun Velo Routes</h1>
+            <div class="flex items-center gap-4">
+                <select id="type-filter" class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Types</option>
                     <option value="road">Road</option>
                     <option value="gravel">Gravel</option>
                 </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
+                <button id="unit-toggle" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Switch to km/m</button>
+                <button id="theme-toggle" class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">Dark Mode</button>
             </div>
-            <button id="unit-toggle" class="w-48 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
-                Switch to km/m
-            </button>
-        </div>
+        </header>
 
-        <!-- Routes Grid -->
-        <div id="routes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
-            <!-- Route cards will be injected here by JavaScript -->
-        </div>
-
+        <main id="routes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Route cards will be injected here -->
+        </main>
     </div>
 
     <script>
-        const routesDataJSON = `{{ROUTES_DATA}}`;
-        let routesData = [];
+        // This is the placeholder where the Python script will inject the route data.
+        const allRoutes = {{ROUTES_DATA}};
 
-        if (routesDataJSON.startsWith('[')) {
-            try {
-                routesData = JSON.parse(routesDataJSON);
-            } catch (e) {
-                console.error("Error parsing routes data:", e);
-                routesData = [];
-            }
-        }
-        
+        // State variables
         let useMetric = localStorage.getItem("useMetric") === "true";
+        let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         let filterType = localStorage.getItem("filterType") || "all";
 
-        function initializeControls() {
-            document.getElementById("unit-toggle").textContent = useMetric ? "Switch to mi/ft" : "Switch to km/m";
-            document.getElementById("type-filter").value = filterType;
-        }
+        // DOM elements
+        const container = document.getElementById('routes-container');
+        const typeFilter = document.getElementById('type-filter');
+        const unitToggleButton = document.getElementById('unit-toggle');
+        const themeToggleButton = document.getElementById('theme-toggle');
 
+        // --- Helper Functions ---
         function formatDistance(km) {
-            if (km === null || typeof km === 'undefined') return "?";
+            if (!km) return "?";
             return useMetric ? `${km.toFixed(1)} km` : `${(km * 0.621371).toFixed(1)} mi`;
         }
 
         function formatElevation(m) {
-            if (m === null || typeof m === 'undefined') return "?";
-            return useMetric ? `${Math.round(m)} m` : `${Math.round(m * 3.28084)} ft`;
+            if (!m) return "?";
+            return useMetric ? `${m} m` : `${Math.round(m * 3.28084)} ft`;
         }
 
+        // --- Core Rendering Function ---
         function renderRoutes() {
-            const container = document.getElementById("routes-container");
-            container.innerHTML = ""; 
+            // 1. Filter routes based on the current selection
+            const filteredRoutes = filterType === 'all'
+                ? allRoutes
+                : allRoutes.filter(route => route.type === filterType);
 
-            const filteredRoutes = routesData.filter(route => 
-                filterType === "all" || route.type === filterType
-            );
+            // 2. Clear the existing content
+            container.innerHTML = '';
 
+            // 3. Check if there are any routes to display
             if (filteredRoutes.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-gray-400 py-16">
-                    <h3 class="text-xl font-medium">No routes found for this filter.</h3>
-                    <p class="mt-2">Try selecting a different route type.</p>
-                </div>`;
+                container.innerHTML = `<p class="md:col-span-2 lg:col-span-3 text-center text-gray-500 dark:text-gray-400">No routes found for the selected filter.</p>`;
                 return;
             }
 
+            // 4. Create and append a card for each route
             filteredRoutes.forEach(route => {
-                const card = document.createElement("a");
-                card.href = route.rwgpsUrl;
-                card.target = "_blank";
-                card.rel = "noopener noreferrer";
-                card.className = "route-card group relative aspect-[4/5] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:-translate-y-1";
-
-                const badgeClass = route.type === "gravel" ? "bg-green-600" : "bg-blue-600";
-                
-                card.innerHTML = `
-                    <img src="${route.image}" alt="Map of ${route.title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onerror="this.onerror=null;this.src='https://placehold.co/400x500/020617/334155?text=Map+Not+Found';">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent"></div>
-                    
-                    <div class="relative flex flex-col justify-between h-full p-5 text-white">
-                        <!-- Top Section -->
-                        <div>
-                            <span class="absolute top-4 right-4 text-xs font-semibold uppercase tracking-wider py-1 px-3 rounded-full ${badgeClass}">
-                                ${route.type}
-                            </span>
-                            <h2 class="text-xl font-bold leading-tight group-hover:text-blue-400 transition-colors">${route.title}</h2>
+                const badgeClass = route.type === 'gravel' ? 'bg-green-600/80 text-white' : 'bg-blue-600/80 text-white';
+                const cardHTML = `
+                    <a href="${route.rwgpsUrl}" target="_blank" rel="noopener noreferrer" class="route-card-bg block rounded-lg shadow-lg overflow-hidden h-64 relative group">
+                        <div style="background-image: url('${route.image}')" class="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"></div>
+                        <div class="absolute inset-0 route-card-content flex flex-col justify-between p-4 text-white">
+                            <div>
+                                <h2 class="text-xl font-bold leading-tight">${route.title}</h2>
+                                <span class="badge ${badgeClass} text-xs font-semibold px-2 py-1 rounded-full mt-1 inline-block">${route.type}</span>
+                            </div>
+                            <div class="flex justify-end text-right">
+                                <div class="text-sm">
+                                    <div>${formatDistance(route.distance)}</div>
+                                    <div>${formatElevation(route.elevation)} ascent</div>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <!-- Bottom Section -->
-                        <div class="text-sm">
-                            <div class="font-medium">Distance: <span class="font-normal text-gray-300">${formatDistance(route.distance)}</span></div>
-                            <div class="font-medium">Elevation: <span class="font-normal text-gray-300">${formatElevation(route.elevation)}</span></div>
-                        </div>
-                    </div>
+                    </a>
                 `;
-                container.appendChild(card);
+                container.insertAdjacentHTML('beforeend', cardHTML);
             });
         }
 
-        // Event Listeners
-        document.getElementById("unit-toggle").addEventListener("click", () => {
+        // --- UI Update and Event Listeners ---
+        function updateTheme() {
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                themeToggleButton.textContent = 'Light Mode';
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeToggleButton.textContent = 'Dark Mode';
+            }
+        }
+        
+        function updateUnitButton() {
+             unitToggleButton.textContent = useMetric ? "Switch to mi/ft" : "Switch to km/m";
+        }
+
+        themeToggleButton.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('isDarkMode', isDarkMode);
+            updateTheme();
+        });
+        
+        unitToggleButton.addEventListener('click', () => {
             useMetric = !useMetric;
-            localStorage.setItem("useMetric", useMetric);
-            initializeControls();
+            localStorage.setItem('useMetric', useMetric);
+            updateUnitButton();
             renderRoutes();
         });
 
-        document.getElementById("type-filter").addEventListener("change", (e) => {
+        typeFilter.addEventListener('change', (e) => {
             filterType = e.target.value;
-            localStorage.setItem("filterType", filterType);
+            localStorage.setItem('filterType', filterType);
             renderRoutes();
         });
 
-        // Initial setup on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeControls();
+        // --- Initial Load ---
+        function initialize() {
+            typeFilter.value = filterType;
+            updateTheme();
+            updateUnitButton();
             renderRoutes();
-        });
+        }
+
+        initialize();
 
     </script>
-
 </body>
 </html>
 

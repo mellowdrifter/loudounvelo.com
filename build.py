@@ -162,8 +162,6 @@ class BikeRoutesBuilder:
                     return None
                 data = json.loads(response.read().decode('utf-8'))
                 
-                # FIX: Use .get() with a fallback to the top-level dictionary.
-                # This robustly handles both nested and flat JSON responses.
                 details = data.get('route', data)
 
                 title = details.get('name')
@@ -208,15 +206,11 @@ class BikeRoutesBuilder:
             print(f"  ❌ CRITICAL: '{{ROUTES_DATA}}' placeholder not found in {template_path}. Cannot inject route data.")
             exit(1)
 
-        # Sort routes by distance, shortest to longest
         self.routes.sort(key=lambda x: x.get('distance') or 0)
         
-        # Create a clean JSON string and escape any backticks to prevent JS errors
         routes_json = json.dumps(self.routes, indent=2)
-        routes_json_escaped = routes_json.replace('`', '\\`')
         
-        # Replace placeholders in the template
-        html = template.replace('{{ROUTES_DATA}}', routes_json_escaped)
+        html = template.replace('{{ROUTES_DATA}}', routes_json)
         html = html.replace('{{SITE_TITLE}}', 'Loudoun Velo - Local Bike Routes')
         
         with open(self.dist_dir / 'index.html', 'w', encoding='utf-8') as f:
@@ -227,10 +221,8 @@ class BikeRoutesBuilder:
     def _copy_assets(self):
         """Copies necessary static assets to the dist directory."""
         print("\n📋 Copying assets...")
-        # Create CNAME for custom domain on GitHub Pages
         with open(self.dist_dir / 'CNAME', 'w') as f:
             f.write('loudounvelo.com')
-        # Create .nojekyll to disable Jekyll processing on GitHub Pages
         (self.dist_dir / '.nojekyll').touch()
         print("  ✓ CNAME and .nojekyll files created.")
 
@@ -240,10 +232,8 @@ class BikeRoutesBuilder:
             "# Welcome to Loudoun Velo Routes!\n"
             "# Add your RideWithGPS route URLs below.\n"
             "# You can optionally specify a type (road or gravel) after a comma.\n\n"
-            "# Example Road Route:\n"
-            "https://ridewithgps.com/routes/42639454, road\n\n"
-            "# Example Gravel Route (uncomment to use):\n"
-            "# https://ridewithgps.com/routes/38495835, gravel\n"
+            "https://ridewithgps.com/routes/42639454, road\n"
+            "https://ridewithgps.com/routes/51848673, road\n"
         )
         with open(self.rides_file, 'w', encoding='utf-8') as f:
             f.write(sample_content)
