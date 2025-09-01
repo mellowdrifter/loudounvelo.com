@@ -171,7 +171,8 @@ class BikeRoutesBuilder:
 
         self.routes.sort(key=lambda x: x.get('distance', 0) or 0)
 
-        routes_json = json.dumps(self.routes, indent=2)
+        # Generate compact JSON to reduce file size
+        routes_json = json.dumps(self.routes, separators=(',', ':'))
         html = template.replace('{{ROUTES_DATA}}', routes_json)
         html = html.replace('{{SITE_TITLE}}', 'Loudoun Velo Routes')
 
