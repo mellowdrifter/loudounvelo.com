@@ -134,7 +134,8 @@
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        // Wrap the entire application logic in a function
+        function initializeApp() {
             const allRoutes = {{ROUTES_DATA}};
             let useMetric = localStorage.getItem("useMetric") === "true";
             let isDarkMode = document.documentElement.classList.contains('dark');
@@ -357,8 +358,14 @@
             }
 
             initialize();
-        });
+        }
+
+        // Defer the main app initialization until the DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
     </script>
 </body>
 </html>
-
