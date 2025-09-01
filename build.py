@@ -8,12 +8,14 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any
+from PIL import Image
 
 class BikeRoutesBuilder:
     def __init__(self):
         self.rides_file = Path('./rides.txt')
         self.routes_dir = Path('./routes')
         self.dist_dir = Path('./dist')
+        self.images_dir = self.dist_dir / 'images'
         self.templates_dir = Path('./templates')
         self.template_path = self.templates_dir / 'index.template.html'
         self.routes: List[Dict[str, Any]] = []
@@ -22,6 +24,7 @@ class BikeRoutesBuilder:
         print("🚴 Building Loudoun Velo Routes Site...\n")
         try:
             self._ensure_directory_exists(self.dist_dir)
+            self._ensure_directory_exists(self.images_dir)
             self._load_routes()
             self._process_routes()
             self._generate_html()
@@ -104,7 +107,6 @@ class BikeRoutesBuilder:
                 
                 data = json.loads(response.read().decode('utf-8'))
                 
-                # The API response can have the main object nested under 'route' or be flat
                 route_info = data.get('route', data)
 
                 if not route_info or 'name' not in route_info:
@@ -118,17 +120,33 @@ class BikeRoutesBuilder:
                 if 'track_points' in route_info:
                     profile = [[pt.get('d', 0) / 1000, pt.get('e', 0)] for pt in route_info['track_points']]
                 
-                # Downsample profile to a reasonable number of points for charting
                 if len(profile) > 250:
                     step = len(profile) // 250
                     profile = profile[::step]
+                
+                # Fetch and convert image to WebP
+                image_url = f'https://ridewithgps.com/routes/{route_id}/full.png'
+                webp_path = self.images_dir / f'{route_id}.webp'
+                
+                # Check if the WebP image already exists to avoid re-downloading
+                if not webp_path.exists():
+                    try:
+                        with urllib.request.urlopen(image_url) as img_response:
+                            img = Image.open(img_response)
+                            img.save(webp_path, 'webp', quality=85)
+                            print(f"    - ✓ Converted image to WebP: {webp_path.name}")
+                    except Exception as img_error:
+                        print(f"    - ⚠️ Could not process image: {img_error}")
+                        # Fallback or skip image
+                        webp_path = None
+
 
                 return {
                     'id': f'route-{route_id}',
                     'title': route_info.get('name', f'Route {route_id}'),
-                    'distance': round(distance_m / 1000, 1) if distance_m else 0, # km
-                    'elevation': round(elevation_m) if elevation_m else 0, # meters
-                    'image': f'https://ridewithgps.com/routes/{route_id}/full.png',
+                    'distance': round(distance_m / 1000, 1) if distance_m else 0,
+                    'elevation': round(elevation_m) if elevation_m else 0,
+                    'image': f'images/{webp_path.name}' if webp_path else '',
                     'profile': profile
                 }
 
@@ -155,7 +173,6 @@ class BikeRoutesBuilder:
             print("  ⚠️ '{{ROUTES_DATA}}' placeholder not found in the template. Aborting.")
             exit(1)
 
-        # Sort routes by distance (shortest to longest) before injecting into template
         self.routes.sort(key=lambda x: x.get('distance', 0) or 0)
 
         routes_json = json.dumps(self.routes, indent=2)
@@ -177,3 +194,4 @@ class BikeRoutesBuilder:
 if __name__ == '__main__':
     builder = BikeRoutesBuilder()
     builder.build()
+
