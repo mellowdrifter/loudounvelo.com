@@ -124,11 +124,9 @@ class BikeRoutesBuilder:
                     step = len(profile) // 250
                     profile = profile[::step]
                 
-                # Fetch and convert image to WebP
                 image_url = f'https://ridewithgps.com/routes/{route_id}/full.png'
                 webp_path = self.images_dir / f'{route_id}.webp'
                 
-                # Check if the WebP image already exists to avoid re-downloading
                 if not webp_path.exists():
                     try:
                         with urllib.request.urlopen(image_url) as img_response:
@@ -137,9 +135,7 @@ class BikeRoutesBuilder:
                             print(f"    - ✓ Converted image to WebP: {webp_path.name}")
                     except Exception as img_error:
                         print(f"    - ⚠️ Could not process image: {img_error}")
-                        # Fallback or skip image
                         webp_path = None
-
 
                 return {
                     'id': f'route-{route_id}',
@@ -194,4 +190,3 @@ class BikeRoutesBuilder:
 if __name__ == '__main__':
     builder = BikeRoutesBuilder()
     builder.build()
-
