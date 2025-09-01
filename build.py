@@ -170,10 +170,17 @@ class BikeRoutesBuilder:
             exit(1)
 
         self.routes.sort(key=lambda x: x.get('distance', 0) or 0)
+        
+        preload_links = ""
+        if self.routes and self.routes[0].get('image'):
+            lcp_image_path = self.routes[0]['image']
+            preload_links = f'<link rel="preload" as="image" href="{lcp_image_path}">'
 
         routes_json = json.dumps(self.routes, indent=2)
         html = template.replace('{{ROUTES_DATA}}', routes_json)
         html = html.replace('{{SITE_TITLE}}', 'Loudoun Velo Routes')
+        html = html.replace('{{PRELOAD_LINKS}}', preload_links)
+
 
         with open(self.dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(html)
@@ -190,3 +197,4 @@ class BikeRoutesBuilder:
 if __name__ == '__main__':
     builder = BikeRoutesBuilder()
     builder.build()
+
