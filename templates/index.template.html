@@ -6,13 +6,23 @@
     <meta name="description" content="A curated collection of the best road and gravel cycling routes in Northern Virginia (NoVA) for the local cycling community. Filter rides by distance and explore elevation profiles.">
     <title>{{SITE_TITLE}}</title>
     {{PRELOAD_LINKS}}
-    <script src="https://cdn.tailwindcss.com" defer></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
+        // Set theme immediately to prevent FOUC (Flash of Unstyled Content)
+        if (localStorage.getItem('isDarkMode') === 'true' || (!('isDarkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
+
+        // Configure Tailwind before it runs
+        window.tailwind = {
+            config: {
+                darkMode: 'class',
+            }
+        };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/4.1.12/lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.min.js" defer></script>
     <style>
         body {
             -webkit-font-smoothing: antialiased;
@@ -129,7 +139,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             const allRoutes = {{ROUTES_DATA}};
             let useMetric = localStorage.getItem("useMetric") === "true";
-            let isDarkMode = localStorage.getItem("isDarkMode") === "true";
+            // Read initial dark mode state from the class set in the head
+            let isDarkMode = document.documentElement.classList.contains('dark');
             let filterType = localStorage.getItem("filterType") || "all";
             let minDistanceFilter, maxDistanceFilter;
 
@@ -145,7 +156,6 @@
 
             const MILE_CONVERSION = 0.621371;
 
-            // Calculate min/max possible distances from all routes
             const allDistancesKm = allRoutes.map(r => r.distance).filter(d => d > 0);
             const minPossibleKm = allDistancesKm.length > 0 ? Math.min(...allDistancesKm) : 0;
             const maxPossibleKm = allDistancesKm.length > 0 ? Math.max(...allDistancesKm) : 100;
@@ -300,10 +310,11 @@
             }
 
             function updateTheme() {
-                document.documentElement.classList.toggle('dark', isDarkMode);
+                // This function now only handles the icon and rerendering
                 const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm-.707 12.122a1 1 0 011.414 0l.707-.707a1 1 0 111.414 1.414l-.707-.707a1 1 0 01-1.414 0zM1 11a1 1 0 100-2H0a1 1 0 100 2h1z" clip-rule="evenodd" /></svg>`;
                 const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" /></svg>`;
                 themeToggleButton.innerHTML = isDarkMode ? sunIcon : moonIcon;
+                // The class on <html> is what controls the theme, so we just need to re-render.
                 renderRoutes();
             }
             
@@ -314,6 +325,12 @@
             themeToggleButton.addEventListener('click', () => {
                 isDarkMode = !isDarkMode;
                 localStorage.setItem('isDarkMode', isDarkMode);
+                // The head script logic is now inside the click handler to toggle the class
+                if (isDarkMode) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
                 updateTheme();
             });
             
