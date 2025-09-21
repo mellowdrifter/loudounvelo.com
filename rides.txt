@@ -46,3 +46,6 @@ https://ridewithgps.com/routes/52503424, gravel
 https://ridewithgps.com/routes/52503707, gravel
 https://ridewithgps.com/routes/47298559, road
 https://ridewithgps.com/routes/52725370, road
+https://ridewithgps.com/routes/52752651, road
+https://ridewithgps.com/routes/27713383, road
+https://ridewithgps.com/routes/50759462, road
