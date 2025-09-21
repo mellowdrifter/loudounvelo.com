@@ -131,7 +131,7 @@ class BikeRoutesBuilder:
                     try:
                         with urllib.request.urlopen(image_url) as img_response:
                             img = Image.open(img_response)
-                            img.save(webp_path, 'webp', quality=85)
+                            img.save(webp_path, 'webp', quality=95)
                             print(f"    - ✓ Converted image to WebP: {webp_path.name}")
                     except Exception as img_error:
                         print(f"    - ⚠️ Could not process image: {img_error}")
