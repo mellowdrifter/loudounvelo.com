@@ -384,6 +384,13 @@
                 }
             }
 
+            // Rounding
+            [malto, sugar, gatorade, sodCit].forEach(i => {
+                if (i) {
+                    i.amount = Math.round(i.amount);
+                }
+            });
+
             renderOutput();
         }
 
@@ -439,7 +446,7 @@
 
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0";
-                li.innerHTML = `${nameHtml} <span class="font-bold text-blue-600 dark:text-blue-400">${i.amount.toFixed(1)} g</span>`;
+                li.innerHTML = `${nameHtml} <span class="font-bold text-blue-600 dark:text-blue-400">${i.amount.toFixed(0)} g</span>`;
                 recipeList.appendChild(li);
             });
 
