@@ -79,11 +79,8 @@
                     </div>
 
                     <div>
-                        <!-- Sodium is now auto-calculated -->
-                        <!-- <label for="sodium-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sodium Citrate Amount (g)</label> -->
-                        <!-- <input type="number" id="sodium-input" step="0.5" value="2.0" class="..."> -->
                         <p class="text-sm text-gray-500 italic mt-2">Sodium Citrate is automatically added to reach
-                            target sodium levels (1170mg/100g carbs).</p>
+                            target sodium levels (720mg/100g carbs).</p>
                     </div>
 
                     <div>
@@ -101,7 +98,6 @@
                             <span>Total Carbs:</span>
                             <span id="result-carbs" class="font-bold">0g</span>
                         </div>
-                        <!-- New Breakdown -->
                         <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
                             <span>Glucose:</span> <span id="result-glucose">0g</span>
                         </div>
@@ -113,6 +109,10 @@
                             <span>Sodium:</span>
                             <span id="result-sodium" class="font-bold">0mg</span>
                         </div>
+                        <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span>(Target: 7.2mg per g carb)</span>
+                        </div>
+
                         <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                             <span>Potassium:</span>
                             <span id="result-potassium" class="font-bold">0mg</span>
@@ -350,9 +350,9 @@
             }
 
             // 4. Sodium Solver
-            // Rule: "for every 120g of carbs we need about 1.4g of sodium"
-            // Target Sodium (mg) = (Carbs / 120) * 1400
-            const targetNa = (targetCarbs / 120) * 1400;
+            // Rule: "7.2mg of sodium per 1g of carbs"
+            // Target Sodium (mg) = Carbs * 7.2
+            const targetNa = targetCarbs * 7.2;
 
             // Current Sodium from ingredients (mg)
             // (Amount (g) * Sodium (mg/100g) / 100) -> Correct: Sodium col is mg/100g ? Or mg/kg?
