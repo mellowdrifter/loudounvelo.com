@@ -98,48 +98,55 @@
                         <ul id="recipe-list" class="space-y-1"></ul>
                     </div>
 
-                    <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Results</h3>
-                    <div class="p-4 bg-gray-100 dark:bg-gray-900 rounded-md space-y-2">
-                        <div class="flex justify-between">
-                            <span>Total Carbs:</span>
-                            <span id="result-carbs" class="font-bold">0g</span>
+                    <div
+                        class="border-2 border-black dark:border-gray-400 p-4 bg-white dark:bg-gray-100 text-black font-sans max-w-sm mx-auto shadow-lg">
+                        <h3 class="text-3xl font-black border-b-8 border-black pb-1 mb-1 leading-none">Nutrition Facts
+                        </h3>
+                        <div class="flex justify-between items-end border-b-4 border-black pb-1 mb-2">
+                            <div class="font-bold text-sm">Serving size</div>
+                            <div class="font-bold text-sm">1 Bottle</div>
                         </div>
-                        <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span>Glucose:</span> <span id="result-glucose">0g</span>
+                        <div class="flex justify-between items-end border-b border-black pb-1">
+                            <div class="font-bold text-xs">Amount per serving</div>
                         </div>
-                        <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span>Fructose:</span> <span id="result-fructose">0g</span>
-                        </div>
-
-                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                            <span>Sodium:</span>
-                            <span id="result-sodium" class="font-bold">0mg</span>
-                        </div>
-                        <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
-                            <span>(Target: 7.2mg per g carb)</span>
+                        <div class="flex justify-between items-end border-b-4 border-black pb-2 mb-2">
+                            <div class="text-3xl font-black">Calories</div>
+                            <div class="text-4xl font-black" id="result-calories">0</div>
                         </div>
 
-                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                            <span>Potassium:</span>
-                            <span id="result-potassium" class="font-bold">0mg</span>
+                        <div class="border-b border-black py-1 flex justify-between">
+                            <div><span class="font-bold">Total Carbohydrate</span> <span id="result-carbs">0g</span>
+                            </div>
+                            <span class="font-bold" id="result-carbs-pct"></span>
                         </div>
-                        <div class="flex justify-between">
-                            <span>Calcium:</span>
-                            <span id="result-calcium" class="font-bold">0mg</span>
-                        </div>
-
-                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                            <span>Cost:</span>
-                            <span id="result-cost" class="font-bold text-green-600 dark:text-green-400">$0.00</span>
+                        <div class="border-b border-black py-1 pl-4 flex justify-between text-sm">
+                            <div>Total Sugars <span id="result-sugars">0g</span> (G:<span id="result-glucose">0</span>
+                                F:<span id="result-fructose">0</span>)</div>
                         </div>
 
-                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                            <span>Ratio (G:F):</span>
-                            <span id="result-ratio" class="font-bold">-</span>
+                        <div class="border-b border-black py-1 flex justify-between">
+                            <div><span class="font-bold">Sodium</span> <span id="result-sodium">0mg</span></div>
+                            <div class="text-xs italic pt-1">(Target: 7.2mg/g)</div>
                         </div>
-                        <div class="flex justify-between">
-                            <span>Concentration:</span>
-                            <span id="result-concentration" class="font-bold">0%</span>
+                        <div class="border-b border-black py-1 flex justify-between">
+                            <div><span class="font-bold">Potassium</span> <span id="result-potassium">0mg</span></div>
+                        </div>
+                        <div class="border-b border-black py-1 flex justify-between">
+                            <div><span class="font-bold">Calcium</span> <span id="result-calcium">0mg</span></div>
+                        </div>
+
+                        <div class="border-b-4 border-black py-1 flex justify-between mt-2">
+                            <span class="font-bold">Cost per Bottle</span>
+                            <span id="result-cost" class="font-bold text-green-700">$0.00</span>
+                        </div>
+
+                        <div class="pt-2 text-xs flex justify-between text-gray-600">
+                            <span>Ratio (Glucose:Fructose)</span>
+                            <span id="result-ratio" class="font-bold"></span>
+                        </div>
+                        <div class="text-xs flex justify-between text-gray-600">
+                            <span>Concentration</span>
+                            <span id="result-concentration" class="font-bold"></span>
                         </div>
                     </div>
                 </div>
@@ -456,7 +463,23 @@
                 recipeOutput.classList.add('hidden');
             }
 
+            // Calorie Calculation (4 cal/g for Carbs)
+            const calories = totalCarbs * 4;
+            const resultCalories = document.getElementById('result-calories');
+            if (resultCalories) resultCalories.textContent = calories.toFixed(0);
+
             resultCarbs.textContent = `${totalCarbs.toFixed(1)}g`;
+
+            // % Daily Value (based on 275g standard for 2000 cal diet)
+            const carbPct = (totalCarbs / 275) * 100;
+            const resultCarbsPct = document.getElementById('result-carbs-pct');
+            if (resultCarbsPct) resultCarbsPct.textContent = `${carbPct.toFixed(0)}%`;
+
+            // Sugars
+            const totalSugars = totalG + totalF;
+            const resultSugars = document.getElementById('result-sugars');
+            if (resultSugars) resultSugars.textContent = `${totalSugars.toFixed(1)}g`;
+
             resultSodium.textContent = `${totalNa.toFixed(0)}mg`;
 
             // New Outputs
