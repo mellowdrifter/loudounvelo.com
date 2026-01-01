@@ -129,6 +129,11 @@
                         </div>
 
                         <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                            <span>Cost:</span>
+                            <span id="result-cost" class="font-bold text-green-600 dark:text-green-400">$0.00</span>
+                        </div>
+
+                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                             <span>Ratio (G:F):</span>
                             <span id="result-ratio" class="font-bold">-</span>
                         </div>
@@ -192,10 +197,10 @@
             console.warn("Using fallback ingredients data");
             // IDs should match the new stripped list
             dbIngredients = [
-                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 71.4, glucose: 100, fructose: 0, potassium: 0, calcium: 25.4, active: true, amount: 0 },
-                { id: 2, name: 'Gatorade Powder', carbs: 100, sodium: 652.2, glucose: 60, fructose: 40, potassium: 217.4, calcium: 0, active: false, amount: 0 },
-                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, potassium: 0, calcium: 0, active: true, amount: 0 },
-                { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 23600, glucose: 0, fructose: 0, potassium: 0, calcium: 0, active: true, amount: 0 }
+                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 71.4, glucose: 100, fructose: 0, potassium: 0, calcium: 25.4, cost: 0.00931, active: true, amount: 0 },
+                { id: 2, name: 'Gatorade Powder', carbs: 100, sodium: 652.2, glucose: 60, fructose: 40, potassium: 217.4, calcium: 0, cost: 0.00737, active: false, amount: 0 },
+                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, potassium: 0, calcium: 0, cost: 0.00181, active: true, amount: 0 },
+                { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 23600, glucose: 0, fructose: 0, potassium: 0, calcium: 0, cost: 0.02203, active: true, amount: 0 }
             ];
         }
 
@@ -452,6 +457,15 @@
             if (resultCalcium) resultCalcium.textContent = `${totalCa.toFixed(0)}mg`;
             if (resultGlucose) resultGlucose.textContent = `${totalG.toFixed(1)}g`;
             if (resultFructose) resultFructose.textContent = `${totalF.toFixed(1)}g`;
+
+            // Cost Calculation
+            let totalCost = 0;
+            sortedIngs.forEach(i => {
+                const costPerGram = i.cost || 0;
+                totalCost += i.amount * costPerGram;
+            });
+            const resultCost = document.getElementById('result-cost');
+            if (resultCost) resultCost.textContent = `$${totalCost.toFixed(2)}`;
 
             const ratio = totalF > 0 ? (totalG / totalF).toFixed(2) : (totalG > 0 ? "1:0" : "-");
             resultRatio.textContent = totalF > 0 ? `${ratio}:1` : ratio;
