@@ -153,11 +153,12 @@
 
     <script>
         // Logic
-        // Injected by build.py
+        // Injected by build.py. NOTE: Placeholder must match build.py exactly (no spaces)
         let dbIngredients = {{ INGREDIENTS_DATA }};
 
-        // Fallback for dev if injection isn't present
+        // Fallback for dev if injection isn't present or failed
         if (!Array.isArray(dbIngredients) || dbIngredients.length === 0) {
+            console.warn("Using fallback ingredients data");
             dbIngredients = [
                 { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 0, glucose: 100, fructose: 0, active: true, amount: 60 },
                 { id: 2, name: 'Fructose', carbs: 100, sodium: 0, glucose: 0, fructose: 100, active: true, amount: 30 },
@@ -166,6 +167,7 @@
             ];
         }
 
+        // Deep copy to created mutable state
         let ingredients = JSON.parse(JSON.stringify(dbIngredients));
 
         // DOM Elements
@@ -179,8 +181,8 @@
         const volumeInput = document.getElementById('volume-ml');
         const recipeOutput = document.getElementById('recipe-output');
         const recipeList = document.getElementById('recipe-list');
-        const modeSolver = document.getElementById('mode-solver');
-        // const modeManual = document.getElementById('mode-manual'); // removed/implicit
+        const solverToggle = document.getElementById('solver-toggle');
+        // const addIngredientBtn = document.getElementById('add-ingredient-btn'); // accessed directly in modal logic
 
         // Theme
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
@@ -199,7 +201,56 @@
             updateTheme();
         });
 
-        // App Logic
+        // --- Persistence & Defaults ---
+        function loadState() {
+            // Load saved settings
+            const savedCarbs = localStorage.getItem('mix_targetCarbs');
+            const savedRatio = localStorage.getItem('mix_targetRatio');
+            const savedVolume = localStorage.getItem('mix_volume');
+            const savedSolver = localStorage.getItem('mix_solver_active');
+            const savedIngredients = JSON.parse(localStorage.getItem('mix_selectedIngredients') || 'null');
+
+            // Apply Defaults if nothing saved
+            targetCarbsInput.value = savedCarbs ? savedCarbs : "60";
+            targetRatioSelect.value = savedRatio ? savedRatio : "1.0";
+            volumeInput.value = savedVolume ? savedVolume : "750";
+            if (savedSolver !== null) {
+                solverToggle.checked = savedSolver === "true";
+            }
+
+            // Apply Ingredient Selection
+            if (savedIngredients && Array.isArray(savedIngredients)) {
+                // Restore active state from saved list (savedIngredients = list of IDs or Names?)
+                // Using IDs is safer but IDs are generated on fly in build.py based on order. Names are more stable if file changes.
+                // Let's use Names.
+                ingredients.forEach(i => {
+                    i.active = savedIngredients.includes(i.name);
+                });
+            } else {
+                // No save found (First visit) -> Default to Table Sugar only
+                ingredients.forEach(i => {
+                    if (i.name === 'Table Sugar') {
+                        i.active = true;
+                        // If it's a first load, maybe trigger a solve/calc to fill amounts?
+                    } else {
+                        // Keep others explicitly inactive unless specified in DB (which are all False by default)
+                        i.active = false;
+                    }
+                });
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('mix_targetCarbs', targetCarbsInput.value);
+            localStorage.setItem('mix_targetRatio', targetRatioSelect.value);
+            localStorage.setItem('mix_volume', volumeInput.value);
+            localStorage.setItem('mix_solver_active', solverToggle.checked);
+
+            const activeNames = ingredients.filter(i => i.active).map(i => i.name);
+            localStorage.setItem('mix_selectedIngredients', JSON.stringify(activeNames));
+        }
+
+        // --- App Logic ---
         function renderIngredients() {
             ingredientsList.innerHTML = '';
             ingredients.forEach(ing => {
@@ -234,6 +285,8 @@
             const ing = ingredients.find(i => i.id === id);
             if (ing) ing.active = !ing.active;
 
+            saveState(); // Save selection
+
             if (isSolverMode() && ing.active) {
                 solve();
             } else {
@@ -242,129 +295,87 @@
         }
 
         function updateAmount(id, val) {
-            if (isSolverMode()) {
-                // In solver mode, manual override disables solver for a moment?
-                // Or just updating amounts triggers calc.
-                // Actually, if user types amount, they are fighting the solver.
-                // Ideally, solver mode makes inputs readonly?
-                // For now, let's allow it, but solver might overwrite if triggered.
-                // Better: disable inputs in solver mode.
-            }
-
             const ing = ingredients.find(i => i.id === id);
             if (ing) ing.amount = parseFloat(val) || 0;
+            // Note: Not saving exact amounts, just settings. Amounts are re-calculated or lost on reload if manual.
+            // If solver mode is on, they are recalculated anyway.
             calculate();
         }
 
         function removeIngredient(id) {
             if (confirm('Delete this ingredient?')) {
                 ingredients = ingredients.filter(i => i.id !== id);
+                saveState();
                 renderIngredients();
             }
         }
 
         function isSolverMode() {
-            return document.getElementById('solver-toggle').checked;
+            return solverToggle.checked;
         }
 
         function solve() {
-            if (!isSolverMode()) return;
+            if (!isSolverMode()) {
+                renderIngredients(); // Re-render to show manually edited values if needed, or just standard calc
+                return;
+            }
 
             const targetCarbs = parseFloat(targetCarbsInput.value) || 0;
             const targetRatioStr = targetRatioSelect.value;
             let targetRatio = 1.0;
 
+            // Should probably allow custom ratio input eventually
             if (targetRatioStr !== 'custom') {
                 targetRatio = parseFloat(targetRatioStr);
-            } else {
-                // If custom, what? For now assume 1:1 or read from somewhere else?
-                // Simplification: Custom ratio not supported in solver yet.
-                targetRatio = 1.0;
             }
 
             // Identify active carb sources
             const activeIngredients = ingredients.filter(i => i.active && i.carbs > 0);
 
-            if (activeIngredients.length < 2) {
-                // Need at least 2 ingredients to balance ratio usually.
-                // Or 1 if it matches perfectly.
-                // Simple logic:
-                // Distribute between "Fructose High" and "Glucose High" sources.
-                // This is a complex linear programming problem generally, but we simplify.
+            if (activeIngredients.length >= 2) {
+                // Two ingredient solver (Simplified for Glucose Source + Fructose Source)
+                // Assumes we use the first two active carb ingredients found.
+                // Works well for Malto+Fructose, Malto+Sugar, Gatorade+Malto, etc.
+                const i1 = activeIngredients[0];
+                const i2 = activeIngredients[1];
 
-                // Let's implement a specific solver for 2 ingredients:
-                // 1. Glucose Source (e.g. Maltodextrin)
-                // 2. Fructose Source (e.g. Fructose)
-                // Or Sugar + Malto.
+                const C = targetCarbs;
+                const R = targetRatio;
 
-                // Equation:
-                // m1 * c1 + m2 * c2 = C_target
-                // (m1 * c1 * g1 + m2 * c2 * g2) / (m1 * c1 * f1 + m2 * c2 * f2) = R_target
+                const g1 = i1.glucose / 100;
+                const f1 = i1.fructose / 100;
+                const g2 = i2.glucose / 100;
+                const f2 = i2.fructose / 100;
 
-                // Let C1_total = m1 * c1 (carbs from 1)
-                // Let C2_total = m2 * c2 (carbs from 2)
-                // C1 + C2 = C
+                let C1 = 0;
+                const denominator = (g1 - g2 - R * f1 + R * f2); // Determinant-like term
 
-                // G_total = C1 * g1 + C2 * g2
-                // F_total = C1 * f1 + C2 * f2
-                // G / F = R
-
-                // G = R * F
-                // C1*g1 + C2*g2 = R * (C1*f1 + C2*f2)
-                // C1*g1 + (C - C1)*g2 = R * (C1*f1 + (C - C1)*f2)
-
-                // Solve for C1:
-                // C1*g1 + C*g2 - C1*g2 = R*C1*f1 + R*C*f2 - R*C1*f2
-                // C1(g1 - g2 - R*f1 + R*f2) = R*C*f2 - C*g2
-                // C1 = C * (R*f2 - g2) / (g1 - g2 - R*f1 + R*f2)
-
-                // Use the first two active ingredients.
-                if (activeIngredients.length >= 2) {
-                    const i1 = activeIngredients[0];
-                    const i2 = activeIngredients[1];
-
-                    const C = targetCarbs;
-                    const R = targetRatio;
-
-                    // Ratios are percentages, e.g. 100, 0. Convert to 0..1
-                    const g1 = i1.glucose / 100;
-                    const f1 = i1.fructose / 100;
-                    const g2 = i2.glucose / 100;
-                    const f2 = i2.fructose / 100;
-
-                    let C1 = 0;
-
-                    const denominator = (g1 - g2 - R * f1 + R * f2);
-
-                    if (Math.abs(denominator) < 0.0001) {
-                        // Parallel lines, can't solve uniquely or impossible
-                        // Fallback: 50/50?
-                        C1 = C / 2;
-                    } else {
-                        C1 = C * (R * f2 - g2) / denominator;
-                    }
-
-                    let C2 = C - C1;
-
-                    // Clamp to 0..C (cannot have negative mass)
-                    if (C1 < 0) { C1 = 0; C2 = C; }
-                    if (C1 > C) { C1 = C; C2 = 0; }
-
-                    // Convert Carb Mass back to Ingredient Mass
-                    // m1 = C1 / (carbs1 / 100)
-
-                    i1.amount = C1 / (i1.carbs / 100);
-                    i2.amount = C2 / (i2.carbs / 100);
-
-                    // Zero out others?
-                    for (let k = 2; k < activeIngredients.length; k++) {
-                        activeIngredients[k].amount = 0;
-                    }
-                } else if (activeIngredients.length === 1) {
-                    // Just fill carbs with this one
-                    const i1 = activeIngredients[0];
-                    i1.amount = targetCarbs / (i1.carbs / 100);
+                if (Math.abs(denominator) < 0.0001) {
+                    // Degenerate case (e.g. two identical ingredients, or parallel composition)
+                    // Just split 50/50 by carbs
+                    C1 = C / 2;
+                } else {
+                    C1 = C * (R * f2 - g2) / denominator;
                 }
+
+                let C2 = C - C1;
+
+                // Clamp to prevent neg values (best effort)
+                // If impossible to satisfy ratio with positive amounts, max out one.
+                if (C1 < 0) { C1 = 0; C2 = C; }
+                if (C1 > C) { C1 = C; C2 = 0; }
+
+                i1.amount = C1 / (i1.carbs / 100);
+                i2.amount = C2 / (i2.carbs / 100);
+
+                // Zero others
+                for (let k = 2; k < activeIngredients.length; k++) {
+                    activeIngredients[k].amount = 0;
+                }
+            } else if (activeIngredients.length === 1) {
+                // Single ingredient - just match carbs
+                const i1 = activeIngredients[0];
+                i1.amount = targetCarbs / (i1.carbs / 100);
             }
 
             renderIngredients();
@@ -384,9 +395,7 @@
                 const carbs = i.amount * (i.carbs / 100);
                 const na = i.amount * (i.sodium / 100);
 
-                // Normalize G/F to sum to 100 for calc (handle cases where they might be empty)
                 const sum = i.glucose + i.fructose || 100;
-
                 const g = carbs * (i.glucose / sum);
                 const f = carbs * (i.fructose / sum);
 
@@ -440,18 +449,38 @@
                 active: true,
                 amount: 0
             });
+            saveState(); // Should we save custom ingredients? 
+            // Currently DB is static. Custom ingredients aren't persisted deep. 
+            // They will disappear on reload. That's fine for now.
             renderIngredients();
             modal.classList.add('hidden');
         };
 
-        // Auto-Solve Listeners
-        targetCarbsInput.addEventListener('input', () => { if (isSolverMode()) solve(); else calculate(); });
-        targetRatioSelect.addEventListener('change', () => { if (isSolverMode()) solve(); else calculate(); });
-        document.getElementById('solver-toggle').addEventListener('change', () => { if (isSolverMode()) solve(); });
+        // Listeners for changes -> Save State & Recalc
+        function onSettingChange() {
+            saveState();
+            if (isSolverMode()) solve();
+            else calculate();
+        }
+
+        targetCarbsInput.addEventListener('input', onSettingChange);
+        targetRatioSelect.addEventListener('change', onSettingChange);
+        volumeInput.addEventListener('input', onSettingChange);
+        solverToggle.addEventListener('change', () => {
+            saveState();
+            if (isSolverMode()) solve();
+        });
 
         // Init
-        renderIngredients();
+        updateTheme();
+        loadState();
 
+        // Trigger initial solve/calc based on defaults
+        if (isSolverMode()) {
+            solve();
+        } else {
+            calculate();
+        }
 
     </script>
 </body>
