@@ -126,14 +126,15 @@
 
             <!-- Ingredients Manager -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Ingredients</h2>
-                    <button id="add-ingredient-btn"
-                        class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Add New</button>
-                </div>
-
-                <div id="ingredients-list" class="space-y-4">
-                    <!-- Ingredients will be injected here -->
+                <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recipe</h2>
+                    <div class="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4">
+                        <ul id="recipe-list" class="space-y-1">
+                            <!-- Helper Text -->
+                            <li class="text-sm text-gray-500 italic">Enter your targets above to see the recipe here.
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -277,19 +278,18 @@
                 ratioVal = parseFloat(targetRatioSelect.value);
             }
 
-            // Ratio is G:F. R = G/F.
-            // G = R * F.
-            // G + F = C.
-            // R*F + F = C => F(R+1) = C => F_targ = C / (R+1).
+            // Ratio is G:F. User selects "N" for "1:N".
+            // So G=1, F=N. Total Parts = 1+N.
+            // F_targ = C * (N / (1+N)).
 
-            const F_targ = targetCarbs / (ratioVal + 1);
+            const F_targ = targetCarbs * (ratioVal / (ratioVal + 1));
             const G_targ = targetCarbs - F_targ;
 
             // Ingredients
-            const malto = getIngredientByName('Maltodextrin');
-            const sugar = getIngredientByName('Sugar'); // Table Sugar
-            const gatorade = getIngredientByName('Gatorade');
-            const sodCit = getIngredientByName('Sodium Citrate');
+            const malto = getIngredientByName('Maltodextrin') || ingredients[0];
+            const sugar = getIngredientByName('Sugar') || ingredients[2];
+            const gatorade = getIngredientByName('Gatorade') || ingredients[1];
+            const sodCit = getIngredientByName('Sodium') || ingredients[3]; // 'Sodium Citrate' in name matches 'Sodium'
 
             // 1. Gatorade Logic
             let F_gat = 0;
