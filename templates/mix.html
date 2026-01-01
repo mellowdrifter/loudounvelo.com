@@ -421,9 +421,20 @@
                 totalG += g;
                 totalF += f;
 
+                // Links
+                let link = null;
+                const n = i.name.toLowerCase();
+                if (n.includes('maltodextrin')) link = "https://www.amazon.com/NOW-Nutrition-Maltodextrin-Absorption-Production/dp/B0013OUNRM";
+                else if (n.includes('sodium citrate')) link = "https://www.amazon.com/Anthonys-Premium-Sodium-Citrate-Emulsifier/dp/B07T927Z6R?th=1";
+                else if (n.includes('gatorade')) link = "https://www.amazon.com/Gatorade-Thirst-Quencher-Powder-Glacier/dp/B07CT8182P?th=1";
+
+                const nameHtml = link
+                    ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 dark:text-blue-400 hover:underline">${i.name}</a> <span class="text-xs text-gray-400">↗</span>`
+                    : `<span class="font-medium text-gray-800 dark:text-gray-200">${i.name}</span>`;
+
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0";
-                li.innerHTML = `<span class="font-medium text-gray-800 dark:text-gray-200">${i.name}</span> <span class="font-bold text-blue-600 dark:text-blue-400">${i.amount.toFixed(1)} g</span>`;
+                li.innerHTML = `${nameHtml} <span class="font-bold text-blue-600 dark:text-blue-400">${i.amount.toFixed(1)} g</span>`;
                 recipeList.appendChild(li);
             });
 
