@@ -36,7 +36,7 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="max-w-2xl mx-auto">
             <!-- Settings Panel -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                 <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Mix Requirements</h2>
@@ -95,9 +95,9 @@
                     </div>
                 </div>
 
-                <div class="mt-8">
+                <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
                     <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Results</h3>
-                    <div class="p-4 bg-gray-100 dark:bg-gray-900 rounded-md space-y-2">
+                    <div class="p-4 bg-gray-100 dark:bg-gray-900 rounded-md space-y-2 mb-6">
                         <div class="flex justify-between">
                             <span>Total Carbs:</span>
                             <span id="result-carbs" class="font-bold">0g</span>
@@ -116,29 +116,24 @@
                         </div>
                     </div>
 
+                    <h4 class="font-bold text-blue-800 dark:text-blue-300 mb-2">Recipe</h4>
                     <div id="recipe-output"
-                        class="mt-6 p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 rounded-md hidden">
-                        <h4 class="font-bold text-blue-800 dark:text-blue-300 mb-2">Recipe</h4>
-                        <ul id="recipe-list" class="list-disc list-inside text-sm space-y-1"></ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ingredients Manager -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recipe</h2>
-                    <div class="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4">
-                        <ul id="recipe-list" class="space-y-1">
-                            <!-- Helper Text -->
-                            <li class="text-sm text-gray-500 italic">Enter your targets above to see the recipe here.
-                            </li>
-                        </ul>
+                        class="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 rounded-md">
+                        <ul id="recipe-list" class="space-y-1"></ul>
                     </div>
                 </div>
             </div>
         </div>
+
+        <footer class="text-center py-8 mt-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                Made with ❤️ for the NoVA cycling community by <a href="https://www.strava.com/athletes/23573109"
+                    target="_blank" rel="noopener noreferrer"
+                    class="text-blue-600 dark:text-blue-400 hover:underline">Darren O'Connor</a>
+            </p>
+        </footer>
     </div>
+
 
     <!-- Add Ingredient Modal -->
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
