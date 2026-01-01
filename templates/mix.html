@@ -40,34 +40,59 @@
             <!-- Settings Panel -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                 <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Mix Requirements</h2>
-
-                <div class="space-y-4">
+                <!-- Controls -->
+                <div class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Total
-                            Carbs (g)</label>
+                        <label for="target-carbs"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Carbs (g)</label>
                         <input type="number" id="target-carbs" value="90"
-                            class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Ratio
+                        <label for="target-ratio"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Ratio
                             (Glucose:Fructose)</label>
                         <select id="target-ratio"
-                            class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="1.0">1:1 (e.g. Sucrose)</option>
-                            <option value="0.8">0.8:1 (Optimal Fructose)</option>
-                            <option value="2.0">2:1 (Traditional Maltodextrin)</option>
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                            <option value="0.9">1:0.9 (Very High Fructose)</option>
+                            <option value="0.8">1:0.8 (High Fructose - Beta Fuel)</option>
+                            <option value="0.7">1:0.7 (Moderate High)</option>
+                            <option value="0.6">1:0.6 (Standard)</option>
+                            <option value="0.5">2:1 (Traditional)</option>
                             <option value="custom">Custom</option>
                         </select>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Drink Volume
-                            (ml)</label>
-                        <input type="number" id="volume-ml" value="750"
-                            class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div id="custom-ratio-container" class="hidden">
+                        <label for="custom-ratio-input"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">Custom Ratio Value (e.g.
+                            0.8)</label>
+                        <input type="number" id="custom-ratio-input" step="0.1"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
                     </div>
 
+                    <div class="flex items-center gap-2 pt-2 pb-2">
+                        <input type="checkbox" id="use-gatorade" class="h-5 w-5 text-blue-600 rounded">
+                        <label for="use-gatorade" class="text-base font-medium text-gray-800 dark:text-gray-200">Include
+                            Gatorade?</label>
+                    </div>
+
+                    <div>
+                        <label for="sodium-input"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sodium Citrate Amount
+                            (g)</label>
+                        <input type="number" id="sodium-input" step="0.5" value="2.0"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                        <p class="text-xs text-gray-500 mt-1">Sodium Citrate is always added. Adjust amount here.</p>
+                    </div>
+
+                    <div>
+                        <label for="volume-ml" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bottle
+                            Volume (ml)</label>
+                        <input type="number" id="volume-ml" value="750"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                    </div>
                 </div>
 
                 <div class="mt-8">
@@ -153,10 +178,11 @@
         // Fallback for dev if injection isn't present or failed
         if (!Array.isArray(dbIngredients) || dbIngredients.length === 0) {
             console.warn("Using fallback ingredients data");
+            // IDs should match the new stripped list
             dbIngredients = [
-                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 0, glucose: 100, fructose: 0, active: true, amount: 60 },
-                { id: 2, name: 'Fructose', carbs: 100, sodium: 0, glucose: 0, fructose: 100, active: true, amount: 30 },
-                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, active: false, amount: 0 },
+                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 0, glucose: 100, fructose: 0, active: true, amount: 0 },
+                { id: 2, name: 'Gatorade Powder', carbs: 93, sodium: 400, glucose: 60, fructose: 40, active: false, amount: 0 },
+                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, active: true, amount: 0 },
                 { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 24000, glucose: 0, fructose: 0, active: true, amount: 2 }
             ];
         }
@@ -165,19 +191,25 @@
         let ingredients = JSON.parse(JSON.stringify(dbIngredients));
 
         // DOM Elements
-        const ingredientsList = document.getElementById('ingredients-list');
         const targetCarbsInput = document.getElementById('target-carbs');
         const targetRatioSelect = document.getElementById('target-ratio');
+        const customRatioInput = document.getElementById('custom-ratio-input');
+        const customRatioContainer = document.getElementById('custom-ratio-container');
+
+        const gatoradeToggle = document.getElementById('use-gatorade');
+        const sodiumInput = document.getElementById('sodium-input');
+
         const resultCarbs = document.getElementById('result-carbs');
         const resultSodium = document.getElementById('result-sodium');
         const resultRatio = document.getElementById('result-ratio');
         const resultConc = document.getElementById('result-concentration');
         const volumeInput = document.getElementById('volume-ml');
+
         const recipeOutput = document.getElementById('recipe-output');
         const recipeList = document.getElementById('recipe-list');
-        // const addIngredientBtn = document.getElementById('add-ingredient-btn'); // accessed directly in modal logic
 
         // Theme
+        // ... (Theme logic unchanged) ...
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         const themeBtn = document.getElementById('theme-toggle');
 
@@ -187,175 +219,152 @@
             const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>`;
             themeBtn.innerHTML = isDarkMode ? sunIcon : moonIcon;
         }
-
         themeBtn.addEventListener('click', () => {
             isDarkMode = !isDarkMode;
             localStorage.setItem("isDarkMode", isDarkMode);
             updateTheme();
         });
 
+
         // --- Persistence & Defaults ---
         function loadState() {
-            // Load saved settings
             const savedCarbs = localStorage.getItem('mix_targetCarbs');
             const savedRatio = localStorage.getItem('mix_targetRatio');
+            const savedCustomRatio = localStorage.getItem('mix_customRatio');
             const savedVolume = localStorage.getItem('mix_volume');
-            const savedIngredients = JSON.parse(localStorage.getItem('mix_selectedIngredients') || 'null');
+            const useGatorade = localStorage.getItem('mix_useGatorade') === 'true';
+            const savedSodium = localStorage.getItem('mix_sodiumAmount');
 
-            // Apply Defaults if nothing saved
-            targetCarbsInput.value = savedCarbs ? savedCarbs : "60";
-            targetRatioSelect.value = savedRatio ? savedRatio : "1.0";
-            volumeInput.value = savedVolume ? savedVolume : "750";
+            // Apply Defaults
+            targetCarbsInput.value = savedCarbs ? savedCarbs : "90";
+            targetRatioSelect.value = savedRatio ? savedRatio : "0.8"; // 1:0.8 default? Or 1:1? User gave list starting with 0.9.
+            // Let's set 1:0.8 as a safe mid point or just use saved.
 
-            // Apply Ingredient Selection
-            if (savedIngredients && Array.isArray(savedIngredients)) {
-                // Restore active state from saved list (savedIngredients = list of IDs or Names?)
-                // Using IDs is safer but IDs are generated on fly in build.py based on order. Names are more stable if file changes.
-                // Let's use Names.
-                ingredients.forEach(i => {
-                    i.active = savedIngredients.includes(i.name);
-                });
-            } else {
-                // No save found (First visit) -> Default to Table Sugar only
-                ingredients.forEach(i => {
-                    i.active = (i.name === 'Table Sugar');
-                });
+            if (targetRatioSelect.value === 'custom') {
+                customRatioContainer.classList.remove('hidden');
+                customRatioInput.value = savedCustomRatio || "1.0";
             }
+
+            volumeInput.value = savedVolume ? savedVolume : "750";
+            gatoradeToggle.checked = useGatorade;
+            sodiumInput.value = savedSodium ? savedSodium : "2"; // Default 2g Sodium Citrate
         }
 
         function saveState() {
             localStorage.setItem('mix_targetCarbs', targetCarbsInput.value);
             localStorage.setItem('mix_targetRatio', targetRatioSelect.value);
+            localStorage.setItem('mix_customRatio', customRatioInput.value);
             localStorage.setItem('mix_volume', volumeInput.value);
-
-            const activeNames = ingredients.filter(i => i.active).map(i => i.name);
-            localStorage.setItem('mix_selectedIngredients', JSON.stringify(activeNames));
+            localStorage.setItem('mix_useGatorade', gatoradeToggle.checked);
+            localStorage.setItem('mix_sodiumAmount', sodiumInput.value);
         }
 
-        // --- App Logic ---
-        function renderIngredients() {
-            ingredientsList.innerHTML = '';
-            ingredients.forEach(ing => {
-                const el = document.createElement('div');
-                el.className = `p-4 border rounded-md ${ing.active ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`;
-                el.innerHTML = `
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="flex items-center gap-2">
-                             <input type="checkbox" ${ing.active ? 'checked' : ''} onchange="toggleActive(${ing.id})" class="h-4 w-4 text-blue-600 rounded">
-                             <span class="font-medium ${ing.active ? 'text-blue-900 dark:text-blue-100' : 'text-gray-500'}">${ing.name}</span>
-                             <div class="text-xs text-gray-400 ml-2">(${ing.glucose}:${ing.fructose})</div>
-                        </div>
-                        <button onclick="removeIngredient(${ing.id})" class="text-xs text-red-500 hover:underline">Remove</button>
-                    </div>
-                    ${ing.active ? `
-                    <div class="flex items-center gap-4">
-                        <div class="flex-1">
-                            <label class="text-xs text-gray-500 block">Amount (g)</label>
-                            <input type="number" readonly value="${ing.amount.toFixed(1)}" class="w-full text-sm p-1 border rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:border-gray-700 cursor-not-allowed">
-                        </div>
-                        <div class="text-xs text-gray-500 pt-4">
-                            ${ing.carbs}% Carbs
-                        </div>
-                    </div>` : ''}
-                `;
-                ingredientsList.appendChild(el);
-            });
-            calculate();
-        }
+        // --- Logic ---
 
-        function toggleActive(id) {
-            const ing = ingredients.find(i => i.id === id);
-            if (ing) ing.active = !ing.active;
-
-            saveState(); // Save selection
-
-            solve(); // Always solve on change
-        }
-
-        function removeIngredient(id) {
-            if (confirm('Delete this ingredient?')) {
-                ingredients = ingredients.filter(i => i.id !== id);
-                saveState();
-                solve();
-            }
+        function getIngredientByName(name) {
+            return ingredients.find(i => i.name.toLowerCase().includes(name.toLowerCase()));
         }
 
         function solve() {
             const targetCarbs = parseFloat(targetCarbsInput.value) || 0;
-            const targetRatioStr = targetRatioSelect.value;
-            let targetRatio = 1.0;
+            let ratioVal = 1.0;
 
-            // Should probably allow custom ratio input eventually
-            if (targetRatioStr !== 'custom') {
-                targetRatio = parseFloat(targetRatioStr);
-            }
-
-            // Identify active carb sources
-            const activeIngredients = ingredients.filter(i => i.active && i.carbs > 0);
-
-            if (activeIngredients.length >= 2) {
-                // Two ingredient solver (Simplified for Glucose Source + Fructose Source)
-                // Assumes we use the first two active carb ingredients found.
-                // Works well for Malto+Fructose, Malto+Sugar, Gatorade+Malto, etc.
-                const i1 = activeIngredients[0];
-                const i2 = activeIngredients[1];
-
-                const C = targetCarbs;
-                const R = targetRatio;
-
-                const g1 = i1.glucose / 100;
-                const f1 = i1.fructose / 100;
-                const g2 = i2.glucose / 100;
-                const f2 = i2.fructose / 100;
-
-                let C1 = 0;
-                const denominator = (g1 - g2 - R * f1 + R * f2); // Determinant-like term
-
-                if (Math.abs(denominator) < 0.0001) {
-                    // Degenerate case (e.g. two identical ingredients, or parallel composition)
-                    // Just split 50/50 by carbs
-                    C1 = C / 2;
-                } else {
-                    C1 = C * (R * f2 - g2) / denominator;
-                }
-
-                let C2 = C - C1;
-
-                // Clamp to prevent neg values (best effort)
-                // If impossible to satisfy ratio with positive amounts, max out one.
-                if (C1 < 0) { C1 = 0; C2 = C; }
-                if (C1 > C) { C1 = C; C2 = 0; }
-
-                i1.amount = C1 / (i1.carbs / 100);
-                i2.amount = C2 / (i2.carbs / 100);
-
-                // Zero others
-                for (let k = 2; k < activeIngredients.length; k++) {
-                    activeIngredients[k].amount = 0;
-                }
-            } else if (activeIngredients.length === 1) {
-                // Single ingredient - just match carbs
-                const i1 = activeIngredients[0];
-                i1.amount = targetCarbs / (i1.carbs / 100);
+            if (targetRatioSelect.value === 'custom') {
+                customRatioContainer.classList.remove('hidden');
+                ratioVal = parseFloat(customRatioInput.value) || 1.0;
             } else {
-                // No active ingredients, reset amounts just in case
-                ingredients.forEach(i => i.amount = 0);
+                customRatioContainer.classList.add('hidden');
+                ratioVal = parseFloat(targetRatioSelect.value);
             }
 
-            renderIngredients();
+            // Ratio is G:F. R = G/F.
+            // G = R * F.
+            // G + F = C.
+            // R*F + F = C => F(R+1) = C => F_targ = C / (R+1).
+
+            const F_targ = targetCarbs / (ratioVal + 1);
+            const G_targ = targetCarbs - F_targ;
+
+            // Ingredients
+            const malto = getIngredientByName('Maltodextrin');
+            const sugar = getIngredientByName('Sugar'); // Table Sugar
+            const gatorade = getIngredientByName('Gatorade');
+            const sodCit = getIngredientByName('Sodium Citrate');
+
+            // 1. Gatorade Logic
+            let F_gat = 0;
+            let G_gat = 0;
+
+            if (gatoradeToggle.checked && gatorade) {
+                // "gatorade fructose amount would equal total fructose divided by 6"
+                F_gat = F_targ / 6.0;
+
+                // "gatorade glucose would equal (gatorade fructose divided by 0.4) * 0.6" (Using corrected math)
+                // Assuming Gatorade is 60:40 G:F.
+                // Or simply: Gatorade mass depends on F_gat?
+                // Let's assume Gatorade powder spec is accurately set in DB (60% G, 40% F).
+                // If F_gat is fixed, then G_gat follows the ratio of the powder.
+                // ratio_gat = G_spec / F_spec = 60/40 = 1.5.
+                G_gat = F_gat * (gatorade.glucose / gatorade.fructose);
+
+                // Set amount
+                const gat_total_carbs = F_gat + G_gat;
+                gatorade.amount = gat_total_carbs / (gatorade.carbs / 100);
+            } else if (gatorade) {
+                gatorade.amount = 0;
+            }
+
+            // 2. Sugar Logic
+            let F_sug = 0;
+            let G_sug = 0;
+            if (sugar) {
+                // "sugar would equal total fructose - amount of fructose from gatorade"
+                // "then double the value as sugar is 50:50" (mass of carbs)
+                F_sug = Math.max(0, F_targ - F_gat);
+                G_sug = F_sug; // Sugar is 50:50
+
+                const sugar_total_carbs = F_sug + G_sug;
+                sugar.amount = sugar_total_carbs / (sugar.carbs / 100);
+            }
+
+            // 3. Maltodextrin Logic
+            let G_malto = 0;
+            if (malto) {
+                // "lamtodrextin would equal total glucose - amount of glucose from gatorade mix - amount of glucose from sugar"
+                const G_needed = G_targ - G_gat - G_sug;
+                G_malto = Math.max(0, G_needed);
+
+                malto.amount = G_malto / (malto.carbs / 100);
+            }
+
+            // 4. Sodium Citrate (Manual)
+            if (sodCit) {
+                sodCit.amount = parseFloat(sodiumInput.value) || 0;
+            }
+
+            renderOutput();
         }
 
-        function calculate() {
+        function renderOutput() {
             let totalCarbs = 0;
             let totalNa = 0;
             let totalG = 0;
             let totalF = 0;
 
             recipeList.innerHTML = '';
-            let hasActive = false;
 
-            ingredients.filter(i => i.active).forEach(i => {
-                hasActive = true;
+            // Strict order: Malto, Gatorade, Sugar, SodCit
+            // Filter inactive/missing
+            const displayOrder = ['Maltodextrin', 'Gatorade', 'Sugar', 'Sodium'];
+
+            // Helper to sort by vague name match
+            const sortedIngs = ingredients.filter(i => i.amount > 0).sort((a, b) => {
+                const aIdx = displayOrder.findIndex(k => a.name.includes(k));
+                const bIdx = displayOrder.findIndex(k => b.name.includes(k));
+                return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
+            });
+
+            sortedIngs.forEach(i => {
                 const carbs = i.amount * (i.carbs / 100);
                 const na = i.amount * (i.sodium / 100);
 
@@ -364,19 +373,21 @@
                 const f = carbs * (i.fructose / sum);
 
                 totalCarbs += carbs;
-                totalNa += na * 100;
+                totalNa += na * 100; // Na is usually mg in the DB? "24000" in ingredients.txt implies mg/100g?
+                // Wait: ingredients.txt sodium is 24000 (mg per 100g?).
+                // "Sodium: float(parts[2])".
+                // If 24000, then 2g * 24000 / 100 = 480 mg. Correct.
 
                 totalG += g;
                 totalF += f;
 
-                if (i.amount > 0) {
-                    const li = document.createElement('li');
-                    li.textContent = `${i.amount.toFixed(1)}g ${i.name}`;
-                    recipeList.appendChild(li);
-                }
+                const li = document.createElement('li');
+                li.className = "flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0";
+                li.innerHTML = `<span class="font-medium text-gray-800 dark:text-gray-200">${i.name}</span> <span class="font-bold text-blue-600 dark:text-blue-400">${i.amount.toFixed(1)} g</span>`;
+                recipeList.appendChild(li);
             });
 
-            if (hasActive) {
+            if (sortedIngs.length > 0) {
                 recipeOutput.classList.remove('hidden');
             } else {
                 recipeOutput.classList.add('hidden');
@@ -393,32 +404,7 @@
             resultConc.textContent = `${conc.toFixed(1)}%`;
         }
 
-        // Modal Logic
-        const modal = document.getElementById('modal');
-        document.getElementById('add-ingredient-btn').onclick = () => modal.classList.remove('hidden');
-        document.getElementById('cancel-modal').onclick = () => modal.classList.add('hidden');
-        document.getElementById('save-modal').onclick = () => {
-            const name = document.getElementById('new-name').value;
-            const carbs = parseFloat(document.getElementById('new-carbs').value) || 0;
-            const sodium = parseFloat(document.getElementById('new-sodium').value) || 0;
-
-            const id = Math.max(...ingredients.map(i => i.id)) + 1;
-            ingredients.push({
-                id,
-                name: name || 'Custom Ingredient',
-                carbs,
-                sodium,
-                glucose: 50, // default
-                fructose: 50,
-                active: true,
-                amount: 0
-            });
-            saveState();
-            solve();
-            modal.classList.add('hidden');
-        };
-
-        // Listeners for changes -> Save State & Recalc
+        // Listeners
         function onSettingChange() {
             saveState();
             solve();
@@ -426,12 +412,15 @@
 
         targetCarbsInput.addEventListener('input', onSettingChange);
         targetRatioSelect.addEventListener('change', onSettingChange);
+        customRatioInput.addEventListener('input', onSettingChange);
         volumeInput.addEventListener('input', onSettingChange);
+        gatoradeToggle.addEventListener('change', onSettingChange);
+        sodiumInput.addEventListener('input', onSettingChange);
 
         // Init
         updateTheme();
         loadState();
-        solve(); // Initial solve + render
+        solve();
 
     </script>
 </body>

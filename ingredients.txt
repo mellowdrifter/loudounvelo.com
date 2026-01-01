@@ -1,9 +1,4 @@
-# Name, Carbs(g/100g), Sodium(mg/100g), Glucose(%), Fructose(%)
-Maltodextrin,94,0,100,0
-Fructose,100,0,0,100
-Table Sugar,100,0,50,50
-Gatorade Powder,93,446,50,50
-Sodium Citrate,0,26000,0,0
-Salt,0,39000,0,0
-Maple Syrup,67,12,50,50
-Honey,82,4,48,52
+Maltodextrin, 94, 0, 100, 0
+Gatorade Powder, 93, 400, 60, 40
+Table Sugar, 100, 0, 50, 50
+Sodium Citrate, 0, 24000, 0, 0
