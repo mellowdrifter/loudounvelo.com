@@ -79,12 +79,11 @@
                     </div>
 
                     <div>
-                        <label for="sodium-input"
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sodium Citrate Amount
-                            (g)</label>
-                        <input type="number" id="sodium-input" step="0.5" value="2.0"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
-                        <p class="text-xs text-gray-500 mt-1">Sodium Citrate is always added. Adjust amount here.</p>
+                        <!-- Sodium is now auto-calculated -->
+                        <!-- <label for="sodium-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Sodium Citrate Amount (g)</label> -->
+                        <!-- <input type="number" id="sodium-input" step="0.5" value="2.0" class="..."> -->
+                        <p class="text-sm text-gray-500 italic mt-2">Sodium Citrate is automatically added to reach
+                            target sodium levels (1170mg/100g carbs).</p>
                     </div>
 
                     <div>
@@ -102,11 +101,28 @@
                             <span>Total Carbs:</span>
                             <span id="result-carbs" class="font-bold">0g</span>
                         </div>
-                        <div class="flex justify-between">
+                        <!-- New Breakdown -->
+                        <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span>Glucose:</span> <span id="result-glucose">0g</span>
+                        </div>
+                        <div class="flex justify-between pl-4 text-sm text-gray-600 dark:text-gray-400">
+                            <span>Fructose:</span> <span id="result-fructose">0g</span>
+                        </div>
+
+                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                             <span>Sodium:</span>
                             <span id="result-sodium" class="font-bold">0mg</span>
                         </div>
+                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                            <span>Potassium:</span>
+                            <span id="result-potassium" class="font-bold">0mg</span>
+                        </div>
                         <div class="flex justify-between">
+                            <span>Calcium:</span>
+                            <span id="result-calcium" class="font-bold">0mg</span>
+                        </div>
+
+                        <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
                             <span>Ratio (G:F):</span>
                             <span id="result-ratio" class="font-bold">-</span>
                         </div>
@@ -176,10 +192,10 @@
             console.warn("Using fallback ingredients data");
             // IDs should match the new stripped list
             dbIngredients = [
-                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 0, glucose: 100, fructose: 0, active: true, amount: 0 },
-                { id: 2, name: 'Gatorade Powder', carbs: 93, sodium: 400, glucose: 60, fructose: 40, active: false, amount: 0 },
-                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, active: true, amount: 0 },
-                { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 24000, glucose: 0, fructose: 0, active: true, amount: 2 }
+                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 71.4, glucose: 100, fructose: 0, potassium: 0, calcium: 25.4, active: true, amount: 0 },
+                { id: 2, name: 'Gatorade Powder', carbs: 100, sodium: 652.2, glucose: 60, fructose: 40, potassium: 217.4, calcium: 0, active: false, amount: 0 },
+                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, potassium: 0, calcium: 0, active: true, amount: 0 },
+                { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 23600, glucose: 0, fructose: 0, potassium: 0, calcium: 0, active: true, amount: 0 }
             ];
         }
 
@@ -193,19 +209,25 @@
         const customRatioContainer = document.getElementById('custom-ratio-container');
 
         const gatoradeToggle = document.getElementById('use-gatorade');
-        const sodiumInput = document.getElementById('sodium-input');
+        // const sodiumInput = document.getElementById('sodium-input'); // Removed/Auto-solved
 
         const resultCarbs = document.getElementById('result-carbs');
         const resultSodium = document.getElementById('result-sodium');
         const resultRatio = document.getElementById('result-ratio');
         const resultConc = document.getElementById('result-concentration');
+
+        // New Mineral Outputs
+        const resultPotassium = document.getElementById('result-potassium');
+        const resultCalcium = document.getElementById('result-calcium');
+        const resultGlucose = document.getElementById('result-glucose');
+        const resultFructose = document.getElementById('result-fructose');
+
         const volumeInput = document.getElementById('volume-ml');
 
         const recipeOutput = document.getElementById('recipe-output');
         const recipeList = document.getElementById('recipe-list');
 
         // Theme
-        // ... (Theme logic unchanged) ...
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         const themeBtn = document.getElementById('theme-toggle');
 
@@ -229,12 +251,10 @@
             const savedCustomRatio = localStorage.getItem('mix_customRatio');
             const savedVolume = localStorage.getItem('mix_volume');
             const useGatorade = localStorage.getItem('mix_useGatorade') === 'true';
-            const savedSodium = localStorage.getItem('mix_sodiumAmount');
 
             // Apply Defaults
             targetCarbsInput.value = savedCarbs ? savedCarbs : "90";
-            targetRatioSelect.value = savedRatio ? savedRatio : "0.8"; // 1:0.8 default? Or 1:1? User gave list starting with 0.9.
-            // Let's set 1:0.8 as a safe mid point or just use saved.
+            targetRatioSelect.value = savedRatio ? savedRatio : "0.8";
 
             if (targetRatioSelect.value === 'custom') {
                 customRatioContainer.classList.remove('hidden');
@@ -243,7 +263,6 @@
 
             volumeInput.value = savedVolume ? savedVolume : "750";
             gatoradeToggle.checked = useGatorade;
-            sodiumInput.value = savedSodium ? savedSodium : "2"; // Default 2g Sodium Citrate
         }
 
         function saveState() {
@@ -252,7 +271,6 @@
             localStorage.setItem('mix_customRatio', customRatioInput.value);
             localStorage.setItem('mix_volume', volumeInput.value);
             localStorage.setItem('mix_useGatorade', gatoradeToggle.checked);
-            localStorage.setItem('mix_sodiumAmount', sodiumInput.value);
         }
 
         // --- Logic ---
@@ -286,6 +304,12 @@
             const gatorade = getIngredientByName('Gatorade') || ingredients[1];
             const sodCit = getIngredientByName('Sodium') || ingredients[3]; // 'Sodium Citrate' in name matches 'Sodium'
 
+            // Resets
+            malto.amount = 0;
+            sugar.amount = 0;
+            gatorade.amount = 0;
+            sodCit.amount = 0;
+
             // 1. Gatorade Logic
             let F_gat = 0;
             let G_gat = 0;
@@ -294,19 +318,12 @@
                 // "gatorade fructose amount would equal total fructose divided by 6"
                 F_gat = F_targ / 6.0;
 
-                // "gatorade glucose would equal (gatorade fructose divided by 0.4) * 0.6" (Using corrected math)
-                // Assuming Gatorade is 60:40 G:F.
-                // Or simply: Gatorade mass depends on F_gat?
-                // Let's assume Gatorade powder spec is accurately set in DB (60% G, 40% F).
-                // If F_gat is fixed, then G_gat follows the ratio of the powder.
-                // ratio_gat = G_spec / F_spec = 60/40 = 1.5.
+                // Gatorade G:F = 60:40 (1.5)
                 G_gat = F_gat * (gatorade.glucose / gatorade.fructose);
 
                 // Set amount
                 const gat_total_carbs = F_gat + G_gat;
                 gatorade.amount = gat_total_carbs / (gatorade.carbs / 100);
-            } else if (gatorade) {
-                gatorade.amount = 0;
             }
 
             // 2. Sugar Logic
@@ -332,9 +349,34 @@
                 malto.amount = G_malto / (malto.carbs / 100);
             }
 
-            // 4. Sodium Citrate (Manual)
+            // 4. Sodium Solver
+            // Rule: "for every 120g of carbs we need about 1.4g of sodium"
+            // Target Sodium (mg) = (Carbs / 120) * 1400
+            const targetNa = (targetCarbs / 120) * 1400;
+
+            // Current Sodium from ingredients (mg)
+            // (Amount (g) * Sodium (mg/100g) / 100) -> Correct: Sodium col is mg/100g ? Or mg/kg?
+            // User inputs imply mg/100g format earlier (e.g. 24000). But updated data:
+            // "in 23g of gatorade... 150mg Na" -> 652 mg/100g.
+            // Malto: 71.4 mg/100g.
+            // Sodium Citrate 23600 mg/100g.
+
+            let currentNa = 0;
+            [malto, sugar, gatorade].forEach(i => {
+                if (i && i.amount > 0) {
+                    currentNa += i.amount * (i.sodium / 100.0);
+                }
+            });
+
+            const neededNa = Math.max(0, targetNa - currentNa);
+
             if (sodCit) {
-                sodCit.amount = parseFloat(sodiumInput.value) || 0;
+                // Amount (g) = Needed (mg) / (Sodium Content (mg/g))
+                // SodCit Content = 23600 mg / 100g = 236 mg/g.
+                const sodCitDensity = sodCit.sodium / 100.0;
+                if (sodCitDensity > 0) {
+                    sodCit.amount = neededNa / sodCitDensity;
+                }
             }
 
             renderOutput();
@@ -343,6 +385,8 @@
         function renderOutput() {
             let totalCarbs = 0;
             let totalNa = 0;
+            let totalK = 0;
+            let totalCa = 0;
             let totalG = 0;
             let totalF = 0;
 
@@ -362,16 +406,17 @@
             sortedIngs.forEach(i => {
                 const carbs = i.amount * (i.carbs / 100);
                 const na = i.amount * (i.sodium / 100);
+                const k = i.amount * (i.potassium / 100);
+                const ca = i.amount * (i.calcium / 100);
 
                 const sum = i.glucose + i.fructose || 100;
                 const g = carbs * (i.glucose / sum);
                 const f = carbs * (i.fructose / sum);
 
                 totalCarbs += carbs;
-                totalNa += na * 100; // Na is usually mg in the DB? "24000" in ingredients.txt implies mg/100g?
-                // Wait: ingredients.txt sodium is 24000 (mg per 100g?).
-                // "Sodium: float(parts[2])".
-                // If 24000, then 2g * 24000 / 100 = 480 mg. Correct.
+                totalNa += na;     // Already mg
+                totalK += k;
+                totalCa += ca;
 
                 totalG += g;
                 totalF += f;
@@ -390,6 +435,12 @@
 
             resultCarbs.textContent = `${totalCarbs.toFixed(1)}g`;
             resultSodium.textContent = `${totalNa.toFixed(0)}mg`;
+
+            // New Outputs
+            if (resultPotassium) resultPotassium.textContent = `${totalK.toFixed(0)}mg`;
+            if (resultCalcium) resultCalcium.textContent = `${totalCa.toFixed(0)}mg`;
+            if (resultGlucose) resultGlucose.textContent = `${totalG.toFixed(1)}g`;
+            if (resultFructose) resultFructose.textContent = `${totalF.toFixed(1)}g`;
 
             const ratio = totalF > 0 ? (totalG / totalF).toFixed(2) : (totalG > 0 ? "1:0" : "-");
             resultRatio.textContent = totalF > 0 ? `${ratio}:1` : ratio;
@@ -410,7 +461,6 @@
         customRatioInput.addEventListener('input', onSettingChange);
         volumeInput.addEventListener('input', onSettingChange);
         gatoradeToggle.addEventListener('change', onSettingChange);
-        sodiumInput.addEventListener('input', onSettingChange);
 
         // Init
         updateTheme();

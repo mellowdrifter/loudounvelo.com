@@ -205,7 +205,7 @@ class BikeRoutesBuilder:
                         if not line or line.startswith('#'):
                             continue
                         parts = [p.strip() for p in line.split(',')]
-                        if len(parts) >= 5:
+                        if len(parts) >= 7:
                             ingredients.append({
                                 'id': len(ingredients) + 1,
                                 'name': parts[0],
@@ -213,6 +213,8 @@ class BikeRoutesBuilder:
                                 'sodium': float(parts[2]),
                                 'glucose': float(parts[3]),
                                 'fructose': float(parts[4]),
+                                'potassium': float(parts[5]),
+                                'calcium': float(parts[6]),
                                 'active': False,
                                 'amount': 0
                             })
