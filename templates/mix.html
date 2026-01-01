@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drinks Mix Calculator - Loudoun Velo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+            <div class="text-center md:text-left">
+                <a href="../">
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">🚴🏼 Loudoun Velo</h1>
+                    <p class="mt-1 text-md text-gray-500 dark:text-gray-400">Drinks Mix Calculator</p>
+                </a>
+            </div>
+            <div class="flex flex-row items-center gap-4">
+                <button id="theme-toggle" class="p-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Settings Panel -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Mix Requirements</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Total Carbs (g)</label>
+                        <input type="number" id="target-carbs" value="90" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Ratio (Glucose:Fructose)</label>
+                        <select id="target-ratio" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="1.0">1:1 (e.g. Sucrose)</option>
+                            <option value="0.8">0.8:1 (Optimal Fructose)</option>
+                            <option value="2.0">2:1 (Traditional Maltodextrin)</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+
+                    <div>
+                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Drink Volume (ml)</label>
+                         <input type="number" id="volume-ml" value="750" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Results</h3>
+                    <div class="p-4 bg-gray-100 dark:bg-gray-900 rounded-md space-y-2">
+                        <div class="flex justify-between">
+                            <span>Total Carbs:</span>
+                            <span id="result-carbs" class="font-bold">0g</span>
+                        </div>
+                        <div class="flex justify-between">
+                             <span>Sodium:</span>
+                             <span id="result-sodium" class="font-bold">0mg</span>
+                        </div>
+                        <div class="flex justify-between">
+                             <span>Ratio (G:F):</span>
+                             <span id="result-ratio" class="font-bold">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                             <span>Concentration:</span>
+                             <span id="result-concentration" class="font-bold">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div id="recipe-output" class="mt-6 p-4 border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 rounded-md hidden">
+                        <h4 class="font-bold text-blue-800 dark:text-blue-300 mb-2">Recipe</h4>
+                        <ul id="recipe-list" class="list-disc list-inside text-sm space-y-1"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ingredients Manager -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Ingredients</h2>
+                    <button id="add-ingredient-btn" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Add New</button>
+                </div>
+
+                <div id="ingredients-list" class="space-y-4">
+                    <!-- Ingredients will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Ingredient Modal -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Add Ingredient</h3>
+            <div class="space-y-3">
+                <input type="text" id="new-name" placeholder="Name (e.g. Maltodextrin)" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="number" id="new-carbs" placeholder="Carbs per 100g" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                    <input type="number" id="new-sodium" placeholder="Sodium (mg) per 100g" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                </div>
+                <div>
+                     <label class="block text-xs text-gray-500 mb-1">G:F Ratio (approx)</label>
+                     <select id="new-ratio-type" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                         <option value="1:0">100% Glucose (Maltodextrin)</option>
+                         <option value="0:1">100% Fructose</option>
+                         <option value="1:1">50/50 (Sucrose/Sugar)</option>
+                         <option value="custom">Custom</option>
+                     </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancel-modal" class="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400">Cancel</button>
+                <button id="save-modal" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let ingredients = [
+            { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 0, glucose: 100, fructose: 0, active: true, amount: 60 },
+            { id: 2, name: 'Fructose', carbs: 100, sodium: 0, glucose: 0, fructose: 100, active: true, amount: 30 },
+            { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, active: false, amount: 0 },
+            { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 24000, glucose: 0, fructose: 0, active: true, amount: 2 } // approx sodium content
+        ];
+        
+        // DOM Elements
+        const ingredientsList = document.getElementById('ingredients-list');
+        const targetCarbsInput = document.getElementById('target-carbs');
+        const targetRatioSelect = document.getElementById('target-ratio');
+        const resultCarbs = document.getElementById('result-carbs');
+        const resultSodium = document.getElementById('result-sodium');
+        const resultRatio = document.getElementById('result-ratio');
+        const resultConc = document.getElementById('result-concentration');
+        const volumeInput = document.getElementById('volume-ml');
+        const recipeOutput = document.getElementById('recipe-output');
+        const recipeList = document.getElementById('recipe-list');
+        
+        // Theme
+        let isDarkMode = localStorage.getItem("isDarkMode") === "true";
+        const themeBtn = document.getElementById('theme-toggle');
+
+        function updateTheme() {
+            document.documentElement.classList.toggle('dark', isDarkMode);
+            const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" /></svg>`;
+            const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>`;
+            themeBtn.innerHTML = isDarkMode ? sunIcon : moonIcon;
+        }
+        
+        themeBtn.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem("isDarkMode", isDarkMode);
+            updateTheme();
+        });
+
+        // App Logic
+        function renderIngredients() {
+            ingredientsList.innerHTML = '';
+            ingredients.forEach(ing => {
+                const el = document.createElement('div');
+                el.className = `p-4 border rounded-md ${ing.active ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-gray-200 dark:border-gray-700'}`;
+                el.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2">
+                             <input type="checkbox" ${ing.active ? 'checked' : ''} onchange="toggleActive(${ing.id})" class="h-4 w-4 text-blue-600 rounded">
+                             <span class="font-medium ${ing.active ? 'text-blue-900 dark:text-blue-100' : 'text-gray-500'}">${ing.name}</span>
+                        </div>
+                        <button onclick="removeIngredient(${ing.id})" class="text-xs text-red-500 hover:underline">Remove</button>
+                    </div>
+                    ${ing.active ? `
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-500 block">Amount (g)</label>
+                            <input type="number" value="${ing.amount}" oninput="updateAmount(${ing.id}, this.value)" class="w-full text-sm p-1 border rounded dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                        <div class="text-xs text-gray-500 pt-4">
+                            ${ing.carbs}% Carbs
+                        </div>
+                    </div>` : ''}
+                `;
+                ingredientsList.appendChild(el);
+            });
+            calculate();
+        }
+
+        function toggleActive(id) {
+            const ing = ingredients.find(i => i.id === id);
+            if (ing) ing.active = !ing.active;
+            renderIngredients();
+        }
+
+        function updateAmount(id, val) {
+            const ing = ingredients.find(i => i.id === id);
+            if (ing) ing.amount = parseFloat(val) || 0;
+            calculate();
+        }
+
+        function removeIngredient(id) {
+            if(confirm('Delete this ingredient?')) {
+                ingredients = ingredients.filter(i => i.id !== id);
+                renderIngredients();
+            }
+        }
+
+        function calculate() {
+            let totalCarbs = 0;
+            let totalNa = 0;
+            let totalG = 0;
+            let totalF = 0;
+            
+            recipeList.innerHTML = '';
+            let hasActive = false;
+
+            ingredients.filter(i => i.active).forEach(i => {
+                hasActive = true;
+                const carbs = i.amount * (i.carbs / 100);
+                const na = i.amount * (i.sodium / 100); // sodium per 100g input
+                
+                // Simplified G:F split based on carb source
+                const g = carbs * (i.glucose / (i.glucose + i.fructose || 1));
+                const f = carbs * (i.fructose / (i.glucose + i.fructose || 1));
+                
+                totalCarbs += carbs;
+                totalNa += na * 100; // convert to mg if input was %? No, input is mg per 100g. So amount/100 * value. Correct.
+                
+                totalG += g;
+                totalF += f;
+
+                if (i.amount > 0) {
+                    const li = document.createElement('li');
+                    li.textContent = `${i.amount}g ${i.name}`;
+                    recipeList.appendChild(li);
+                }
+            });
+
+            if (hasActive) {
+                recipeOutput.classList.remove('hidden');
+            } else {
+                recipeOutput.classList.add('hidden');
+            }
+
+            resultCarbs.textContent = `${totalCarbs.toFixed(1)}g`;
+            // Check sodium calc: 2g salt with 24000mg/100g = 2 * 240 = 480mg. 
+            // My default data: Sodium Citrate 24000 is 24000mg per 100g? 
+            // Sodium citrate is about 26% sodium. 26g per 100g = 26000mg. Close enough.
+            // i.sodium is "mg per 100g". 
+            // i.amount is g. 
+            // result = i.amount * (i.sodium / 100).
+            // Example: 2g * (24000 / 100) = 2 * 240 = 480. Correct.
+            resultSodium.textContent = `${totalNa.toFixed(0)}mg`;
+            
+            const ratio = totalF > 0 ? (totalG / totalF).toFixed(2) : (totalG > 0 ? "1:0" : "-");
+            resultRatio.textContent = totalF > 0 ? `${ratio}:1` : ratio;
+            
+            const vol = parseFloat(volumeInput.value) || 750;
+            const conc = vol > 0 ? (totalCarbs / vol) * 100 : 0;
+            resultConc.textContent = `${conc.toFixed(1)}%`;
+        }
+        
+        // Modal Logic
+        const modal = document.getElementById('modal');
+        document.getElementById('add-ingredient-btn').onclick = () => modal.classList.remove('hidden');
+        document.getElementById('cancel-modal').onclick = () => modal.classList.add('hidden');
+        document.getElementById('save-modal').onclick = () => {
+             const name = document.getElementById('new-name').value;
+             const carbs = parseFloat(document.getElementById('new-carbs').value) || 0;
+             const sodium = parseFloat(document.getElementById('new-sodium').value) || 0;
+             
+             // For now just basic custom ingredients
+            const id = Math.max(...ingredients.map(i => i.id)) + 1;
+            ingredients.push({
+                id,
+                name: name || 'Custom Ingredient',
+                carbs,
+                sodium,
+                glucose: 50, // default to 50/50 for now
+                fructose: 50,
+                active: true,
+                amount: 0
+            });
+            renderIngredients();
+            modal.classList.add('hidden');
+        };
+
+        // Init
+        updateTheme();
+        renderIngredients();
+
+    </script>
+</body>
+</html>

@@ -18,6 +18,8 @@ class BikeRoutesBuilder:
         self.images_dir = self.dist_dir / 'images'
         self.templates_dir = Path('./templates')
         self.template_path = self.templates_dir / 'index.template.html'
+        self.mix_template_path = self.templates_dir / 'mix.html'
+        self.mix_dist_dir = self.dist_dir / 'mix'
         self.routes: List[Dict[str, Any]] = []
 
     def build(self):
@@ -28,6 +30,7 @@ class BikeRoutesBuilder:
             self._load_routes()
             self._process_routes()
             self._generate_html()
+            self._build_mix_page()
             self._copy_assets()
             print("\n✅ Build completed successfully!")
             print(f"📁 Output is in the 'dist' directory.")
@@ -180,6 +183,23 @@ class BikeRoutesBuilder:
             f.write(html)
         
         print("  ✓ Generated index.html")
+
+    def _build_mix_page(self):
+        print("\n🍹 Building Mix Calculator page...")
+        if not self.mix_template_path.exists():
+            print(f"  ⚠️ Mix template not found at {self.mix_template_path}. Skipping.")
+            return
+
+        self._ensure_directory_exists(self.mix_dist_dir)
+
+        with open(self.mix_template_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # No dynamic content insertion needed for now, it's a static tool
+        with open(self.mix_dist_dir / 'index.html', 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        print("  ✓ Generated mix/index.html")
 
     def _copy_assets(self):
         print("\n📋 Copying assets...")
