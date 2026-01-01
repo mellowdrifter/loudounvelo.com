@@ -429,7 +429,7 @@
                 else if (n.includes('gatorade')) link = "https://www.amazon.com/Gatorade-Thirst-Quencher-Powder-Glacier/dp/B07CT8182P?th=1";
 
                 const nameHtml = link
-                    ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 dark:text-blue-400 hover:underline">${i.name}</a> <span class="text-xs text-gray-400">↗</span>`
+                    ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 dark:text-blue-400 hover:underline">${i.name}</a>`
                     : `<span class="font-medium text-gray-800 dark:text-gray-200">${i.name}</span>`;
 
                 const li = document.createElement('li');
