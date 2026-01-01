@@ -20,6 +20,7 @@ class BikeRoutesBuilder:
         self.template_path = self.templates_dir / 'index.template.html'
         self.mix_template_path = self.templates_dir / 'mix.html'
         self.mix_dist_dir = self.dist_dir / 'mix'
+        self.ingredients_file = Path('./ingredients.txt')
         self.routes: List[Dict[str, Any]] = []
 
     def build(self):
@@ -192,10 +193,40 @@ class BikeRoutesBuilder:
 
         self._ensure_directory_exists(self.mix_dist_dir)
 
-        with open(self.mix_template_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # Load ingredients
+        ingredients_json = '[]'
+        if self.ingredients_file.exists():
+            print(f"  📖 Loading ingredients from {self.ingredients_file}")
+            ingredients = []
+            try:
+                with open(self.ingredients_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith('#'):
+                            continue
+                        parts = [p.strip() for p in line.split(',')]
+                        if len(parts) >= 5:
+                            ingredients.append({
+                                'id': len(ingredients) + 1,
+                                'name': parts[0],
+                                'carbs': float(parts[1]),
+                                'sodium': float(parts[2]),
+                                'glucose': float(parts[3]),
+                                'fructose': float(parts[4]),
+                                'active': False,
+                                'amount': 0
+                            })
+                ingredients_json = json.dumps(ingredients)
+                print(f"    ✓ Loaded {len(ingredients)} ingredients")
+            except Exception as e:
+                print(f"    ❌ Error loading ingredients: {e}")
 
-        # No dynamic content insertion needed for now, it's a static tool
+        with open(self.mix_template_path, 'r', encoding='utf-8') as f:
+            template = f.read()
+
+        # Inject ingredients data
+        content = template.replace('{{INGREDIENTS_DATA}}', ingredients_json)
+
         with open(self.mix_dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(content)
         
