@@ -68,12 +68,6 @@
                             class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
-                    <div class="flex items-center gap-2 pt-2">
-                        <input type="checkbox" id="solver-toggle"
-                            class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500">
-                        <label for="solver-toggle"
-                            class="text-sm font-medium text-blue-800 dark:text-blue-300">Auto-Solve Amounts</label>
-                    </div>
                 </div>
 
                 <div class="mt-8">
@@ -181,7 +175,6 @@
         const volumeInput = document.getElementById('volume-ml');
         const recipeOutput = document.getElementById('recipe-output');
         const recipeList = document.getElementById('recipe-list');
-        const solverToggle = document.getElementById('solver-toggle');
         // const addIngredientBtn = document.getElementById('add-ingredient-btn'); // accessed directly in modal logic
 
         // Theme
@@ -207,16 +200,12 @@
             const savedCarbs = localStorage.getItem('mix_targetCarbs');
             const savedRatio = localStorage.getItem('mix_targetRatio');
             const savedVolume = localStorage.getItem('mix_volume');
-            const savedSolver = localStorage.getItem('mix_solver_active');
             const savedIngredients = JSON.parse(localStorage.getItem('mix_selectedIngredients') || 'null');
 
             // Apply Defaults if nothing saved
             targetCarbsInput.value = savedCarbs ? savedCarbs : "60";
             targetRatioSelect.value = savedRatio ? savedRatio : "1.0";
             volumeInput.value = savedVolume ? savedVolume : "750";
-            if (savedSolver !== null) {
-                solverToggle.checked = savedSolver === "true";
-            }
 
             // Apply Ingredient Selection
             if (savedIngredients && Array.isArray(savedIngredients)) {
@@ -229,13 +218,7 @@
             } else {
                 // No save found (First visit) -> Default to Table Sugar only
                 ingredients.forEach(i => {
-                    if (i.name === 'Table Sugar') {
-                        i.active = true;
-                        // If it's a first load, maybe trigger a solve/calc to fill amounts?
-                    } else {
-                        // Keep others explicitly inactive unless specified in DB (which are all False by default)
-                        i.active = false;
-                    }
+                    i.active = (i.name === 'Table Sugar');
                 });
             }
         }
@@ -244,7 +227,6 @@
             localStorage.setItem('mix_targetCarbs', targetCarbsInput.value);
             localStorage.setItem('mix_targetRatio', targetRatioSelect.value);
             localStorage.setItem('mix_volume', volumeInput.value);
-            localStorage.setItem('mix_solver_active', solverToggle.checked);
 
             const activeNames = ingredients.filter(i => i.active).map(i => i.name);
             localStorage.setItem('mix_selectedIngredients', JSON.stringify(activeNames));
@@ -269,7 +251,7 @@
                     <div class="flex items-center gap-4">
                         <div class="flex-1">
                             <label class="text-xs text-gray-500 block">Amount (g)</label>
-                            <input type="number" step="0.1" value="${ing.amount.toFixed(1)}" onchange="updateAmount(${ing.id}, this.value)" class="w-full text-sm p-1 border rounded dark:bg-gray-700 dark:border-gray-600">
+                            <input type="number" readonly value="${ing.amount.toFixed(1)}" class="w-full text-sm p-1 border rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:border-gray-700 cursor-not-allowed">
                         </div>
                         <div class="text-xs text-gray-500 pt-4">
                             ${ing.carbs}% Carbs
@@ -287,39 +269,18 @@
 
             saveState(); // Save selection
 
-            if (isSolverMode() && ing.active) {
-                solve();
-            } else {
-                renderIngredients();
-            }
-        }
-
-        function updateAmount(id, val) {
-            const ing = ingredients.find(i => i.id === id);
-            if (ing) ing.amount = parseFloat(val) || 0;
-            // Note: Not saving exact amounts, just settings. Amounts are re-calculated or lost on reload if manual.
-            // If solver mode is on, they are recalculated anyway.
-            calculate();
+            solve(); // Always solve on change
         }
 
         function removeIngredient(id) {
             if (confirm('Delete this ingredient?')) {
                 ingredients = ingredients.filter(i => i.id !== id);
                 saveState();
-                renderIngredients();
+                solve();
             }
-        }
-
-        function isSolverMode() {
-            return solverToggle.checked;
         }
 
         function solve() {
-            if (!isSolverMode()) {
-                renderIngredients(); // Re-render to show manually edited values if needed, or just standard calc
-                return;
-            }
-
             const targetCarbs = parseFloat(targetCarbsInput.value) || 0;
             const targetRatioStr = targetRatioSelect.value;
             let targetRatio = 1.0;
@@ -376,6 +337,9 @@
                 // Single ingredient - just match carbs
                 const i1 = activeIngredients[0];
                 i1.amount = targetCarbs / (i1.carbs / 100);
+            } else {
+                // No active ingredients, reset amounts just in case
+                ingredients.forEach(i => i.amount = 0);
             }
 
             renderIngredients();
@@ -449,38 +413,25 @@
                 active: true,
                 amount: 0
             });
-            saveState(); // Should we save custom ingredients? 
-            // Currently DB is static. Custom ingredients aren't persisted deep. 
-            // They will disappear on reload. That's fine for now.
-            renderIngredients();
+            saveState();
+            solve();
             modal.classList.add('hidden');
         };
 
         // Listeners for changes -> Save State & Recalc
         function onSettingChange() {
             saveState();
-            if (isSolverMode()) solve();
-            else calculate();
+            solve();
         }
 
         targetCarbsInput.addEventListener('input', onSettingChange);
         targetRatioSelect.addEventListener('change', onSettingChange);
         volumeInput.addEventListener('input', onSettingChange);
-        solverToggle.addEventListener('change', () => {
-            saveState();
-            if (isSolverMode()) solve();
-        });
 
         // Init
         updateTheme();
         loadState();
-
-        // Trigger initial solve/calc based on defaults
-        if (isSolverMode()) {
-            solve();
-        } else {
-            calculate();
-        }
+        solve(); // Initial solve + render
 
     </script>
 </body>
