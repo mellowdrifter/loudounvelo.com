@@ -32,6 +32,11 @@
             <div class="flex flex-row items-center gap-4">
                 <button id="theme-toggle"
                     class="p-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="h-6 w-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                    </svg>
                 </button>
             </div>
         </header>
@@ -206,10 +211,10 @@
             console.warn("Using fallback ingredients data");
             // IDs should match the new stripped list
             dbIngredients = [
-                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 71.4, glucose: 100, fructose: 0, potassium: 0, calcium: 25.4, cost: 0.00931, active: true, amount: 0 },
+                { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 71.4, glucose: 100, fructose: 0, potassium: 0, calcium: 25.4, cost: 0.00931, active: false, amount: 0 },
                 { id: 2, name: 'Gatorade Powder', carbs: 100, sodium: 652.2, glucose: 60, fructose: 40, potassium: 217.4, calcium: 0, cost: 0.00737, active: false, amount: 0 },
-                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, potassium: 0, calcium: 0, cost: 0.00181, active: true, amount: 0 },
-                { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 23600, glucose: 0, fructose: 0, potassium: 0, calcium: 0, cost: 0.02203, active: true, amount: 0 }
+                { id: 3, name: 'Table Sugar', carbs: 100, sodium: 0, glucose: 50, fructose: 50, potassium: 0, calcium: 0, cost: 0.00181, active: false, amount: 0 },
+                { id: 4, name: 'Sodium Citrate', carbs: 0, sodium: 23600, glucose: 0, fructose: 0, potassium: 0, calcium: 0, cost: 0.02203, active: false, amount: 0 }
             ];
         }
 
