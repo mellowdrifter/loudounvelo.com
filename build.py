@@ -228,7 +228,7 @@ class BikeRoutesBuilder:
             template = f.read()
 
         # Inject ingredients data
-        content = template.replace('{{INGREDIENTS_DATA}}', ingredients_json)
+        content = template.replace('"{{INGREDIENTS_DATA}}"', ingredients_json)
 
         with open(self.mix_dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(content)

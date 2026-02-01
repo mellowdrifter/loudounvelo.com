@@ -199,7 +199,7 @@
     <script>
         // Logic
         // Injected by build.py. NOTE: Placeholder must match build.py exactly (no spaces)
-        let dbIngredients = {{ INGREDIENTS_DATA }};
+        let dbIngredients = "{{INGREDIENTS_DATA}}";
 
         // Fallback for dev if injection isn't present or failed
         if (!Array.isArray(dbIngredients) || dbIngredients.length === 0) {
