@@ -32,12 +32,12 @@
             <div class="flex flex-row items-center gap-4">
                 <!-- Region Toggle -->
                 <button id="region-toggle" title="Switch region (affects units)"
-                    class="p-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-xl leading-none w-10 h-10 flex items-center justify-center">
+                    class="p-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-xl leading-none w-10 h-10 flex items-center justify-center">
                     🌍
                 </button>
                 <!-- Theme Toggle -->
                 <button id="theme-toggle"
-                    class="p-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
+                    class="p-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                         stroke="currentColor" class="h-6 w-6">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -266,9 +266,10 @@
         const regionBtn = document.getElementById('region-toggle');
 
         function updateRegionUI() {
-            regionBtn.textContent = isAmerican ? '🇺🇸' : '🌍';
+            // Show the icon for what you'll switch TO (not current state)
+            regionBtn.textContent = isAmerican ? '🌍' : '🇺🇸';
             regionBtn.title = isAmerican ? 'Switch to metric (World)' : 'Switch to imperial (American)';
-            // Update weather label
+            // Update weather label to reflect current active unit
             weatherTempLabel.innerHTML = isAmerican
                 ? 'Forecast Temperature (°F) <span class="text-xs text-gray-400">— adjusts sodium citrate for heat</span>'
                 : 'Forecast Temperature (°C) <span class="text-xs text-gray-400">— adjusts sodium citrate for heat</span>';
@@ -287,7 +288,9 @@
 
         function updateTheme() {
             document.documentElement.classList.toggle('dark', isDarkMode);
-            const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" /></svg>`;
+            // Sun icon: rays + circle (shows when in dark mode → click to go light)
+            const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a5.25 5.25 0 1 1 0 10.5 5.25 5.25 0 0 1 0-10.5Z" /></svg>`;
+            // Moon icon (shows when in light mode → click to go dark)
             const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>`;
             themeBtn.innerHTML = isDarkMode ? sunIcon : moonIcon;
         }
