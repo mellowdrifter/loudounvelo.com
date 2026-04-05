@@ -357,15 +357,12 @@ async function loadRouteFromUrl() {
     routeSummary.classList.add('hidden');
 
     try {
-        // Same endpoint build.py uses, proxied for browser CORS
         const apiUrl = `https://ridewithgps.com/routes/${routeId}.json`;
-        const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
-        const res = await fetch(proxyUrl, { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        // Try multiple CORS proxies in order — same JSON endpoint build.py uses
+        const data = await fetchWithProxyFallback(apiUrl);
 
         const info = data.route || data;
-        if (!info || !info.name) throw new Error('Unexpected response format');
+        if (!info || !info.name) throw new Error('Unexpected response format from RideWithGPS');
 
         const distanceKm = (info.distance || 0) / 1000;
         const elevationM = info.elevation_gain || 0;
@@ -382,9 +379,29 @@ async function loadRouteFromUrl() {
         fetchWeather();
     } catch (err) {
         document.getElementById('route-loading').classList.add('hidden');
-        errEl.textContent = `Could not load route: ${err.message}. Make sure the route is public on RideWithGPS.`;
+        errEl.textContent = `Could not load route: ${err.message}`;
         errEl.classList.remove('hidden');
     }
+}
+
+async function fetchWithProxyFallback(url) {
+    const proxies = [
+        (u) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+        (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+        (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+    ];
+
+    let lastErr;
+    for (const p of proxies) {
+        try {
+            const res = await fetch(p(url));
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    throw new Error(`All CORS proxies failed: ${lastErr.message}`);
 }
 
 function renderRouteSummary() {
