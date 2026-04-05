@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ride Planner - Loudoun Velo</title>
+    <meta name="description" content="Plan your ride nutrition bottle-by-bottle based on your route, weather forecast, and intensity.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <style>
+    body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .bottle-card { transition: box-shadow 0.2s; }
+        .bottle-card:hover { box-shadow: 0 4px 24px rgba(59,130,246,0.15); }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
+
+<div class="container mx-auto p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+        <div class="text-center md:text-left">
+            <a href="../">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">🚴🏼 Loudoun Velo</h1>
+                <p class="mt-1 text-md text-gray-500 dark:text-gray-400">Ride Planner</p>
+            </a>
+        </div>
+        <div class="flex flex-row items-center gap-4">
+            <a href="../mix/" class="px-3 py-2 text-sm bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                Mix Calculator
+            </a>
+            <!-- Region Toggle -->
+            <button id="region-toggle" title="Switch region"
+                class="p-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-xl leading-none w-10 h-10 flex items-center justify-center">
+                🇺🇸
+            </button>
+            <!-- Theme Toggle -->
+            <button id="theme-toggle"
+                class="p-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="max-w-3xl mx-auto space-y-6">
+
+        <!-- STEP 1: Route -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <h2 class="text-lg font-bold mb-1 text-gray-900 dark:text-white">① Route</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Paste a <a href="https://ridewithgps.com" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">RideWithGPS</a> route URL.
+                <span class="block text-xs mt-1">e.g. <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">https://ridewithgps.com/routes/12345678</code></span>
+            </p>
+            <div class="flex gap-2">
+                <input type="url" id="route-url" placeholder="https://ridewithgps.com/routes/..."
+                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                <button id="load-route-btn"
+                    class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap">
+                    Load Route
+                </button>
+            </div>
+            <div id="route-loading" class="hidden mt-3 text-sm text-gray-500">⏳ Fetching route…</div>
+            <div id="route-error"   class="hidden mt-3 text-sm text-red-500"></div>
+            <div id="route-summary" class="hidden mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+                <p class="font-bold text-base text-gray-900 dark:text-white mb-2" id="route-name"></p>
+                <div class="flex flex-wrap gap-4">
+                    <span>📏 <span id="route-distance" class="font-semibold"></span></span>
+                    <span>⛰️ <span id="route-elevation" class="font-semibold"></span></span>
+                    <span>📍 <span id="route-coords" class="text-xs text-gray-500"></span></span>
+                </div>
+                <button id="clear-route" class="mt-2 text-xs text-red-500 hover:underline">✕ Clear</button>
+            </div>
+        </div>
+
+        <!-- STEP 2: Ride Details -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <h2 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">② Ride Details</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                    <input type="date" id="ride-date"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
+                    <input type="time" id="ride-start" value="07:00"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Planned Ride Duration</label>
+                    <div class="flex gap-2 mt-1">
+                        <input type="number" id="duration-hours" min="0" max="24" placeholder="h"
+                            class="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                        <span class="self-center text-gray-500">hrs</span>
+                        <input type="number" id="duration-mins" min="0" max="59" placeholder="m"
+                            class="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                        <span class="self-center text-gray-500">min</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bottle Size (ml)</label>
+                    <input type="number" id="bottle-size" value="750" min="300" max="1000"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ride Intensity</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button data-intensity="z2"
+                            class="intensity-btn selected-intensity py-3 px-2 rounded-lg border-2 text-center transition-all">
+                            <div class="text-xl">🟢</div>
+                            <div class="font-semibold text-sm mt-1">Zone 2</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Endurance</div>
+                        </button>
+                        <button data-intensity="group"
+                            class="intensity-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-center transition-all hover:border-blue-300">
+                            <div class="text-xl">🟡</div>
+                            <div class="font-semibold text-sm mt-1">Fast Group</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Hard tempo</div>
+                        </button>
+                        <button data-intensity="race"
+                            class="intensity-btn py-3 px-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-center transition-all hover:border-blue-300">
+                            <div class="text-xl">🔴</div>
+                            <div class="font-semibold text-sm mt-1">Race / Event</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">All out</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carb targets (editable) -->
+            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Carb Targets (g/hr) — editable</p>
+                <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center gap-2 text-sm">
+                        <span class="text-gray-600 dark:text-gray-400">🟢 Zone 2</span>
+                        <input type="number" id="carb-z2" value="60" min="20" max="120"
+                            class="w-16 rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm p-1 text-center bg-white">
+                        <span class="text-gray-500">g/hr</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <span class="text-gray-600 dark:text-gray-400">🟡 Fast Group</span>
+                        <input type="number" id="carb-group" value="80" min="20" max="120"
+                            class="w-16 rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm p-1 text-center bg-white">
+                        <span class="text-gray-500">g/hr</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <span class="text-gray-600 dark:text-gray-400">🔴 Race</span>
+                        <input type="number" id="carb-race" value="90" min="20" max="120"
+                            class="w-16 rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm p-1 text-center bg-white">
+                        <span class="text-gray-500">g/hr</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Weather (auto-loaded) -->
+        <div id="weather-card" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hidden">
+            <h2 class="text-lg font-bold mb-3 text-gray-900 dark:text-white">③ Weather Forecast</h2>
+            <div id="weather-loading" class="text-sm text-gray-500 hidden">Fetching forecast…</div>
+            <div id="weather-error" class="text-sm text-red-500 hidden"></div>
+            <div id="weather-display" class="hidden">
+                <div class="flex flex-wrap gap-6 text-sm">
+                    <div>
+                        <span class="text-gray-500">At start</span>
+                        <div class="text-2xl font-bold" id="weather-start-temp"></div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Peak during ride</span>
+                        <div class="text-2xl font-bold" id="weather-peak-temp"></div>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 block">Sodium adjustment</span>
+                        <div class="font-semibold text-orange-600 dark:text-orange-400" id="weather-na-note"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="text-center">
+            <button id="generate-btn"
+                class="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed text-base">
+                Generate Nutrition Plan
+            </button>
+            <p id="generate-error" class="text-red-500 text-sm mt-2 hidden"></p>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="results" class="hidden space-y-6">
+
+            <!-- Summary -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Nutrition Plan</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                        <div class="text-2xl font-black text-blue-700 dark:text-blue-300" id="sum-carbs">—</div>
+                        <div class="text-xs text-gray-500 mt-1">Total Carbs</div>
+                    </div>
+                    <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
+                        <div class="text-2xl font-black text-orange-600 dark:text-orange-300" id="sum-sodium">—</div>
+                        <div class="text-xs text-gray-500 mt-1">Total Sodium</div>
+                    </div>
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                        <div class="text-2xl font-black text-green-700 dark:text-green-300" id="sum-bottles">—</div>
+                        <div class="text-xs text-gray-500 mt-1">Mix Bottles</div>
+                    </div>
+                    <div class="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-3">
+                        <div class="text-2xl font-black text-cyan-700 dark:text-cyan-300" id="sum-water">—</div>
+                        <div class="text-xs text-gray-500 mt-1">Hydro Pack Water</div>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 mt-3 italic" id="climb-note"></p>
+            </div>
+
+            <!-- Bottle Cards -->
+            <div id="bottles-section">
+                <h3 class="text-base font-bold text-gray-700 dark:text-gray-300 mb-3">Per-Bottle Recipe</h3>
+                <div id="bottle-cards" class="space-y-4"></div>
+            </div>
+
+            <!-- Hydro pack -->
+            <div class="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-5">
+                <h3 class="font-bold text-cyan-800 dark:text-cyan-300 mb-1">💧 Hydro Pack</h3>
+                <p class="text-sm text-cyan-700 dark:text-cyan-400">
+                    Fill with <span id="hydro-volume" class="font-bold text-lg"></span> of <strong>plain water</strong> — no mix. This keeps your core hydration separate from your fuelling bottles.
+                </p>
+            </div>
+
+            <!-- Timing guide -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                <h3 class="font-bold text-gray-900 dark:text-white mb-3">⏱ Bottle Timing Guide</h3>
+                <div id="timing-guide" class="space-y-2 text-sm"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="text-center py-8 mt-4">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+            Made with ❤️ for the NoVA cycling community by
+            <a href="https://www.strava.com/athletes/23573109" target="_blank" rel="noopener noreferrer"
+                class="text-blue-600 dark:text-blue-400 hover:underline">Darren O'Connor</a>
+        </p>
+    </footer>
+</div>
+
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const GRAMS_PER_OZ = 28.3495;
+const GRAMS_PER_TSP_SODCIT = 4.6;
+const FLUID_PER_HOUR_ML = 500; // average drinking rate ml/hr
+const BOTTLE_MINS = 90;        // default: one bottle per 90 min
+
+// Ingredient fallback (similar to /mix)
+const INGREDIENTS = [
+    { name: 'Maltodextrin',   carbs: 94,    sodium: 71.4,  glucose: 100, fructose: 0,  potassium: 0,     calcium: 25.4, cost: 0.00931 },
+    { name: 'Gatorade Powder',carbs: 100,   sodium: 652.2, glucose: 60,  fructose: 40, potassium: 217.4, calcium: 0,    cost: 0.00737 },
+    { name: 'Table Sugar',    carbs: 100,   sodium: 0,     glucose: 50,  fructose: 50, potassium: 0,     calcium: 0,    cost: 0.00181 },
+    { name: 'Sodium Citrate', carbs: 0,     sodium: 23600, glucose: 0,   fructose: 0,  potassium: 0,     calcium: 0,    cost: 0.02203 },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let routeData = null;   // { name, distanceKm, elevationM, lat, lon, trackPoints }
+let weatherData = null; // { startTempC, peakTempC }
+let isAmerican = localStorage.getItem('mix_region') === 'american';
+let isDarkMode  = localStorage.getItem('isDarkMode') === 'true';
+
+// ─── Theme & Region ───────────────────────────────────────────────────────────
+const regionBtn = document.getElementById('region-toggle');
+const themeBtn  = document.getElementById('theme-toggle');
+
+function updateTheme() {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    const sunIcon  = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a5.25 5.25 0 1 1 0 10.5 5.25 5.25 0 0 1 0-10.5Z"/></svg>`;
+    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-6 w-6"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/></svg>`;
+    themeBtn.innerHTML = isDarkMode ? sunIcon : moonIcon;
+}
+function updateRegionUI() {
+    regionBtn.textContent = isAmerican ? '🌍' : '🇺🇸';
+    regionBtn.title = isAmerican ? 'Switch to metric (World)' : 'Switch to imperial (American)';
+}
+themeBtn.addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('isDarkMode', isDarkMode);
+    updateTheme();
+});
+regionBtn.addEventListener('click', () => {
+    isAmerican = !isAmerican;
+    localStorage.setItem('mix_region', isAmerican ? 'american' : 'world');
+    updateRegionUI();
+    if (routeData) renderRouteSummary();
+    if (document.getElementById('results').classList.contains('hidden') === false) {
+        generatePlan();
+    }
+});
+
+// ─── Intensity selector ───────────────────────────────────────────────────────
+let selectedIntensity = 'z2';
+document.querySelectorAll('.intensity-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.intensity-btn').forEach(b => {
+            b.classList.remove('selected-intensity');
+            b.classList.add('border-gray-200', 'dark:border-gray-600');
+        });
+        btn.classList.add('selected-intensity');
+        btn.classList.remove('border-gray-200', 'dark:border-gray-600');
+        selectedIntensity = btn.dataset.intensity;
+    });
+});
+
+// Style for selected intensity
+const style = document.createElement('style');
+style.textContent = `.selected-intensity { border-color: #3b82f6; background: rgba(59,130,246,0.08); }`;
+document.head.appendChild(style);
+
+// ─── Route URL Fetch ─────────────────────────────────────────────────────────
+const routeSummary = document.getElementById('route-summary');
+
+document.getElementById('load-route-btn').addEventListener('click', loadRouteFromUrl);
+document.getElementById('route-url').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') loadRouteFromUrl();
+});
+document.getElementById('clear-route').addEventListener('click', () => {
+    routeData = null;
+    weatherData = null;
+    document.getElementById('route-url').value = '';
+    routeSummary.classList.add('hidden');
+    document.getElementById('route-error').classList.add('hidden');
+    document.getElementById('weather-card').classList.add('hidden');
+    document.getElementById('results').classList.add('hidden');
+});
+
+async function loadRouteFromUrl() {
+    const input = document.getElementById('route-url').value.trim();
+    const errEl = document.getElementById('route-error');
+    errEl.classList.add('hidden');
+
+    // Extract numeric route ID from URL like ridewithgps.com/routes/12345678
+    const match = input.match(/ridewithgps\.com\/routes\/(\d+)/);
+    if (!match) {
+        errEl.textContent = 'Please enter a valid RideWithGPS route URL (e.g. https://ridewithgps.com/routes/12345678)';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    const routeId = match[1];
+
+    document.getElementById('route-loading').classList.remove('hidden');
+    routeSummary.classList.add('hidden');
+
+    try {
+        // Same endpoint build.py uses, proxied for browser CORS
+        const apiUrl = `https://ridewithgps.com/routes/${routeId}.json`;
+        const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(apiUrl)}`;
+        const res = await fetch(proxyUrl, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const info = data.route || data;
+        if (!info || !info.name) throw new Error('Unexpected response format');
+
+        const distanceKm = (info.distance || 0) / 1000;
+        const elevationM = info.elevation_gain || 0;
+
+        // RWGPS track_points: { x: lon, y: lat, d: dist_m, e: elevation_m }
+        const pts = info.track_points || [];
+        const lat = pts.length ? (pts[0].y || 0) : 0;
+        const lon = pts.length ? (pts[0].x || 0) : 0;
+        const trackPoints = pts.map(pt => ({ d: (pt.d || 0) / 1000, e: pt.e || 0 }));
+
+        routeData = { name: info.name, distanceKm, elevationM, lat, lon, trackPoints };
+        document.getElementById('route-loading').classList.add('hidden');
+        renderRouteSummary();
+        fetchWeather();
+    } catch (err) {
+        document.getElementById('route-loading').classList.add('hidden');
+        errEl.textContent = `Could not load route: ${err.message}. Make sure the route is public on RideWithGPS.`;
+        errEl.classList.remove('hidden');
+    }
+}
+
+function renderRouteSummary() {
+    if (!routeData) return;
+    document.getElementById('route-name').textContent = routeData.name;
+    if (isAmerican) {
+        document.getElementById('route-distance').textContent = `${(routeData.distanceKm * 0.621371).toFixed(1)} mi`;
+        document.getElementById('route-elevation').textContent = `${Math.round(routeData.elevationM * 3.28084).toLocaleString()} ft gain`;
+    } else {
+        document.getElementById('route-distance').textContent = `${routeData.distanceKm.toFixed(1)} km`;
+        document.getElementById('route-elevation').textContent = `${Math.round(routeData.elevationM).toLocaleString()} m gain`;
+    }
+    document.getElementById('route-coords').textContent = `${routeData.lat.toFixed(4)}, ${routeData.lon.toFixed(4)}`;
+    routeSummary.classList.remove('hidden');
+}
+
+// ─── Weather ──────────────────────────────────────────────────────────────────
+async function fetchWeather() {
+    if (!routeData) return;
+    const date = document.getElementById('ride-date').value;
+    if (!date) {
+        document.getElementById('weather-card').classList.add('hidden');
+        return;
+    }
+
+    document.getElementById('weather-card').classList.remove('hidden');
+    document.getElementById('weather-loading').classList.remove('hidden');
+    document.getElementById('weather-display').classList.add('hidden');
+    document.getElementById('weather-error').classList.add('hidden');
+
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${routeData.lat.toFixed(4)}&longitude=${routeData.lon.toFixed(4)}&hourly=temperature_2m&timezone=auto&start_date=${date}&end_date=${date}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Weather API error ${res.status}`);
+        const data = await res.json();
+
+        const startHour = parseInt((document.getElementById('ride-start').value || '07:00').split(':')[0]);
+        const durationH = getRideDurationHours();
+        const endHour = Math.min(23, Math.round(startHour + durationH));
+        const temps = data.hourly.temperature_2m;
+
+        const startTempC = temps[startHour] ?? temps[0];
+        const peakTempC  = Math.max(...temps.slice(startHour, endHour + 1));
+
+        weatherData = { startTempC, peakTempC };
+        renderWeather();
+    } catch (err) {
+        document.getElementById('weather-loading').classList.add('hidden');
+        document.getElementById('weather-error').textContent = 'Could not fetch weather: ' + err.message;
+        document.getElementById('weather-error').classList.remove('hidden');
+    }
+}
+
+function renderWeather() {
+    document.getElementById('weather-loading').classList.add('hidden');
+    document.getElementById('weather-display').classList.remove('hidden');
+
+    const { startTempC, peakTempC } = weatherData;
+    const mult = getSodiumMultiplier(peakTempC);
+
+    if (isAmerican) {
+        document.getElementById('weather-start-temp').textContent = `${cToF(startTempC).toFixed(0)}°F`;
+        document.getElementById('weather-peak-temp').textContent  = `${cToF(peakTempC).toFixed(0)}°F`;
+    } else {
+        document.getElementById('weather-start-temp').textContent = `${startTempC.toFixed(0)}°C`;
+        document.getElementById('weather-peak-temp').textContent  = `${peakTempC.toFixed(0)}°C`;
+    }
+
+    if (mult > 1.0) {
+        const pct = Math.round((mult - 1) * 100);
+        document.getElementById('weather-na-note').textContent = `+${pct}% sodium (${peakTempC > 35 ? 'Very hot' : peakTempC > 25 ? 'Hot' : 'Warm'} conditions)`;
+    } else {
+        document.getElementById('weather-na-note').textContent = 'No adjustment needed';
+    }
+}
+
+function cToF(c) { return c * 9/5 + 32; }
+
+function getSodiumMultiplier(tempC) {
+    if (tempC <= 15) return 1.0;
+    if (tempC <= 25) return 1.10;
+    if (tempC <= 35) return 1.20;
+    return 1.30;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getRideDurationHours() {
+    const h = parseFloat(document.getElementById('duration-hours').value) || 0;
+    const m = parseFloat(document.getElementById('duration-mins').value) || 0;
+    return h + m / 60;
+}
+
+function getCarbsPerHour() {
+    const map = { z2: 'carb-z2', group: 'carb-group', race: 'carb-race' };
+    return parseFloat(document.getElementById(map[selectedIntensity]).value) || 60;
+}
+
+/**
+ * Estimate effective climb-adjusted duration.
+ * Climbs >3% gradient take longer → more nutrition time in those segments.
+ * We distribute the user's total time across the route based on gradient weighting.
+ * This doesn't change total duration, but helps with timing callouts.
+ */
+function buildClimbProfile(trackPoints, totalDurationH) {
+    if (!trackPoints || trackPoints.length < 2) return [];
+    const totalDistKm = trackPoints[trackPoints.length - 1].d;
+    const segments = [];
+
+    for (let i = 1; i < trackPoints.length; i++) {
+        const dDist = trackPoints[i].d - trackPoints[i-1].d;
+        if (dDist < 0.001) continue;
+        const dEle  = trackPoints[i].e - trackPoints[i-1].e;
+        const gradPct = (dEle / (dDist * 1000)) * 100;
+        // Speed weight: climbs > 3% → 0.55x normal speed; > 6% → 0.40x
+        let speedFactor = 1.0;
+        if (gradPct > 6) speedFactor = 0.40;
+        else if (gradPct > 3) speedFactor = 0.55;
+        segments.push({ dDist, gradPct, speedFactor });
+    }
+
+    // Weighted time share
+    const totalWeight = segments.reduce((sum, s) => sum + s.dDist / s.speedFactor, 0);
+    let elapsed = 0;
+    return segments.map(s => {
+        const segTime = (s.dDist / s.speedFactor / totalWeight) * totalDurationH;
+        elapsed += segTime;
+        return { ...s, elapsed };
+    });
+}
+
+// ─── Mix Solver (same logic as /mix) ────────────────────────────────────────
+function solveMix(targetCarbs, sodiumMultiplier, bottleMl) {
+    const malto   = { ...INGREDIENTS[0], amount: 0 };
+    const gatorade= { ...INGREDIENTS[1], amount: 0 };
+    const sugar   = { ...INGREDIENTS[2], amount: 0 };
+    const sodCit  = { ...INGREDIENTS[3], amount: 0 };
+
+    // Ratio: 1:0.8 (Beta Fuel-style) — good default, user can change on /mix
+    const ratioVal = 0.8;
+    const F_targ = targetCarbs * (ratioVal / (ratioVal + 1));
+    const G_targ = targetCarbs - F_targ;
+
+    // No gatorade in planner (cleaner to show simple recipe)
+    const F_sug = F_targ;
+    const G_sug = F_sug;
+    sugar.amount = (F_sug + G_sug) / (sugar.carbs / 100);
+
+    const G_needed = G_targ - G_sug;
+    malto.amount = Math.max(0, G_needed) / (malto.carbs / 100);
+
+    const targetNa = targetCarbs * 7.2 * sodiumMultiplier;
+    let currentNa = malto.amount * (malto.sodium / 100) + sugar.amount * (sugar.sodium / 100);
+    const neededNa = Math.max(0, targetNa - currentNa);
+    sodCit.amount = neededNa / (sodCit.sodium / 100);
+
+    [malto, sugar, sodCit].forEach(i => { i.amount = Math.round(i.amount); });
+
+    return [malto, sugar, sodCit].filter(i => i.amount > 0);
+}
+
+function fmtIngredient(ing) {
+    if (!isAmerican) return `${ing.amount} g`;
+    if (ing.name.includes('Sodium Citrate')) return `${(ing.amount / GRAMS_PER_TSP_SODCIT).toFixed(1)} tsp`;
+    return `${(ing.amount / GRAMS_PER_OZ).toFixed(2)} oz`;
+}
+
+// ─── Generate Plan ────────────────────────────────────────────────────────────
+document.getElementById('generate-btn').addEventListener('click', generatePlan);
+
+// Also auto-generate when relevant inputs change (if we already have results showing)
+['ride-date','ride-start','duration-hours','duration-mins','bottle-size','carb-z2','carb-group','carb-race'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+        if (id === 'ride-date' || id === 'ride-start') fetchWeather();
+        if (!document.getElementById('results').classList.contains('hidden')) generatePlan();
+    });
+});
+
+function generatePlan() {
+    const errEl = document.getElementById('generate-error');
+    errEl.classList.add('hidden');
+
+    if (!routeData) { showError('Please load a RideWithGPS route first.'); return; }
+    const durationH = getRideDurationHours();
+    if (durationH <= 0) { showError('Please enter your planned ride duration.'); return; }
+
+    const carbsPerHr  = getCarbsPerHour();
+    const totalCarbs  = Math.round(carbsPerHr * durationH);
+    const bottleMl    = parseFloat(document.getElementById('bottle-size').value) || 750;
+    const peakTempC   = weatherData?.peakTempC ?? null;
+    const sodiumMult  = peakTempC !== null ? getSodiumMultiplier(peakTempC) : 1.0;
+
+    // Bottles: one per 90 min of riding (rounded up), minimum 1
+    const numBottles = Math.max(1, Math.ceil(durationH / (BOTTLE_MINS / 60)));
+    const carbsPerBottle = Math.round(totalCarbs / numBottles);
+
+    // Total fluid target: 500ml/hr drinking rate
+    const totalFluidMl = Math.round(FLUID_PER_HOUR_ML * durationH);
+    const bottleFluidMl = numBottles * bottleMl;
+    const hydroMl = Math.max(0, totalFluidMl - bottleFluidMl);
+
+    // Sodium totals
+    let totalNa = 0;
+
+    // Build bottle cards
+    const bottleCardsEl = document.getElementById('bottle-cards');
+    bottleCardsEl.innerHTML = '';
+
+    for (let b = 0; b < numBottles; b++) {
+        const recipe = solveMix(carbsPerBottle, sodiumMult, bottleMl);
+        const bottleNa = recipe.reduce((sum, i) => sum + i.amount * (i.sodium / 100), 0);
+        totalNa += bottleNa;
+
+        const card = document.createElement('div');
+        card.className = 'bottle-card bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-lg p-4';
+        card.innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="font-bold text-blue-700 dark:text-blue-300">🍶 Bottle ${b + 1}</h4>
+                <span class="text-xs text-gray-500">${carbsPerBottle}g carbs · ${Math.round(bottleNa)}mg Na · ${bottleMl}ml</span>
+            </div>
+            <ul class="space-y-1 text-sm">
+                ${recipe.map(i => `
+                    <li class="flex justify-between">
+                        <span class="text-gray-700 dark:text-gray-300">${i.name}</span>
+                        <span class="font-bold text-blue-600 dark:text-blue-400">${fmtIngredient(i)}</span>
+                    </li>`).join('')}
+            </ul>
+        `;
+        bottleCardsEl.appendChild(card);
+    }
+
+    // Summary
+    document.getElementById('sum-carbs').textContent   = `${totalCarbs}g`;
+    document.getElementById('sum-sodium').textContent  = `${Math.round(totalNa)}mg`;
+    document.getElementById('sum-bottles').textContent = `${numBottles} × ${bottleMl}ml`;
+
+    if (isAmerican) {
+        const hydroOz = (hydroMl / 29.5735).toFixed(0);
+        document.getElementById('sum-water').textContent  = hydroMl > 0 ? `${hydroOz} fl oz` : 'None';
+        document.getElementById('hydro-volume').textContent = hydroMl > 0 ? `${hydroOz} fl oz` : 'none extra';
+    } else {
+        document.getElementById('sum-water').textContent  = hydroMl > 0 ? `${hydroMl}ml` : 'None';
+        document.getElementById('hydro-volume').textContent = hydroMl > 0 ? `${hydroMl}ml` : 'none extra';
+    }
+
+    // Climb note
+    const elevPer100km = routeData.elevationM / (routeData.distanceKm / 100);
+    let climbNote = '';
+    if (elevPer100km > 1200) climbNote = '⛰️ Very hilly route — expect significant time in climbs. Consider eating on the descents before steep sections.';
+    else if (elevPer100km > 600) climbNote = '🏔️ Moderate climbing. Consume carbs before and during climbs; they take time to absorb.';
+    else climbNote = '🟢 Relatively flat route — steady fuelling every 20–30 min works well.';
+    document.getElementById('climb-note').textContent = climbNote;
+
+    // Timing guide
+    const timingEl = document.getElementById('timing-guide');
+    timingEl.innerHTML = '';
+    const interval = durationH / numBottles;
+    for (let b = 0; b < numBottles; b++) {
+        const startH = b * interval;
+        const endH   = (b + 1) * interval;
+        const label  = formatHM(startH) + ' – ' + formatHM(endH);
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0';
+        row.innerHTML = `<span class="text-gray-600 dark:text-gray-400">🍶 Bottle ${b+1}</span><span class="font-medium">${label} into ride</span><span class="text-xs text-gray-400">${carbsPerBottle}g carbs</span>`;
+        timingEl.appendChild(row);
+    }
+
+    document.getElementById('results').classList.remove('hidden');
+}
+
+function formatHM(h) {
+    const hrs = Math.floor(h);
+    const min = Math.round((h - hrs) * 60);
+    if (hrs === 0) return `${min}m`;
+    if (min === 0) return `${hrs}h`;
+    return `${hrs}h ${min}m`;
+}
+
+function showError(msg) {
+    const el = document.getElementById('generate-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+// ─── Date listener ────────────────────────────────────────────────────────────
+document.getElementById('ride-date').addEventListener('change', fetchWeather);
+document.getElementById('ride-start').addEventListener('change', fetchWeather);
+
+// Set default date to today
+const today = new Date();
+document.getElementById('ride-date').value = today.toISOString().split('T')[0];
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+updateTheme();
+updateRegionUI();
+</script>
+
+</body>
+</html>

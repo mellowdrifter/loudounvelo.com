@@ -20,6 +20,8 @@ class BikeRoutesBuilder:
         self.template_path = self.templates_dir / 'index.template.html'
         self.mix_template_path = self.templates_dir / 'mix.html'
         self.mix_dist_dir = self.dist_dir / 'mix'
+        self.planner_template_path = self.templates_dir / 'planner.html'
+        self.planner_dist_dir = self.dist_dir / 'planner'
         self.ingredients_file = Path('./ingredients.txt')
         self.routes: List[Dict[str, Any]] = []
 
@@ -32,6 +34,7 @@ class BikeRoutesBuilder:
             self._process_routes()
             self._generate_html()
             self._build_mix_page()
+            self._build_planner_page()
             self._copy_assets()
             print("\n✅ Build completed successfully!")
             print(f"📁 Output is in the 'dist' directory.")
@@ -234,6 +237,22 @@ class BikeRoutesBuilder:
             f.write(content)
         
         print("  ✓ Generated mix/index.html")
+
+    def _build_planner_page(self):
+        print("\n🗺️ Building Ride Planner page...")
+        if not self.planner_template_path.exists():
+            print(f"  ⚠️ Planner template not found at {self.planner_template_path}. Skipping.")
+            return
+
+        self._ensure_directory_exists(self.planner_dist_dir)
+
+        with open(self.planner_template_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        with open(self.planner_dist_dir / 'index.html', 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        print("  ✓ Generated planner/index.html")
 
     def _copy_assets(self):
         print("\n📋 Copying assets...")
