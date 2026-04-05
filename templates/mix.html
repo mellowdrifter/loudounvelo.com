@@ -30,6 +30,12 @@
                 </a>
             </div>
             <div class="flex flex-row items-center gap-4">
+                <!-- Region Toggle -->
+                <button id="region-toggle" title="Switch region (affects units)"
+                    class="p-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-xl leading-none w-10 h-10 flex items-center justify-center">
+                    🌍
+                </button>
+                <!-- Theme Toggle -->
                 <button id="theme-toggle"
                     class="p-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
@@ -86,15 +92,25 @@
                     </div>
 
                     <div>
-                        <p class="text-sm text-gray-500 italic mt-2">Sodium Citrate is automatically added to reach
-                            target sodium levels (720mg/100g carbs).</p>
-                    </div>
-
-                    <div>
                         <label for="volume-ml" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bottle
                             Volume (ml)</label>
                         <input type="number" id="volume-ml" value="750"
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                    </div>
+
+                    <!-- Weather Input -->
+                    <div>
+                        <label for="weather-temp" id="weather-temp-label"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300">Forecast Temperature
+                            (°C) <span class="text-xs text-gray-400">— adjusts sodium citrate for heat</span></label>
+                        <input type="number" id="weather-temp" placeholder="e.g. 28"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm p-2 bg-white">
+                        <p id="sodium-heat-note" class="text-xs text-orange-600 dark:text-orange-400 mt-1 hidden"></p>
+                    </div>
+
+                    <div>
+                        <p class="text-sm text-gray-500 italic mt-2">Sodium Citrate is automatically added to reach
+                            target sodium levels (720mg/100g carbs), scaled up in hot weather.</p>
                     </div>
                 </div>
 
@@ -209,7 +225,6 @@
         // Fallback for dev if injection isn't present or failed
         if (!Array.isArray(dbIngredients) || dbIngredients.length === 0) {
             console.warn("Using fallback ingredients data");
-            // IDs should match the new stripped list
             dbIngredients = [
                 { id: 1, name: 'Maltodextrin', carbs: 94, sodium: 71.4, glucose: 100, fructose: 0, potassium: 0, calcium: 25.4, cost: 0.00931, active: false, amount: 0 },
                 { id: 2, name: 'Gatorade Powder', carbs: 100, sodium: 652.2, glucose: 60, fructose: 40, potassium: 217.4, calcium: 0, cost: 0.00737, active: false, amount: 0 },
@@ -221,32 +236,52 @@
         // Deep copy to created mutable state
         let ingredients = JSON.parse(JSON.stringify(dbIngredients));
 
+        // Unit constants
+        const GRAMS_PER_OZ = 28.3495;
+        const GRAMS_PER_TSP_SODCIT = 4.6; // sodium citrate density ≈ 4.6g/tsp
+
         // DOM Elements
         const targetCarbsInput = document.getElementById('target-carbs');
         const targetRatioSelect = document.getElementById('target-ratio');
         const customRatioInput = document.getElementById('custom-ratio-input');
         const customRatioContainer = document.getElementById('custom-ratio-container');
-
         const gatoradeToggle = document.getElementById('use-gatorade');
-        // const sodiumInput = document.getElementById('sodium-input'); // Removed/Auto-solved
-
         const resultCarbs = document.getElementById('result-carbs');
         const resultSodium = document.getElementById('result-sodium');
         const resultRatio = document.getElementById('result-ratio');
         const resultConc = document.getElementById('result-concentration');
-
-        // New Mineral Outputs
         const resultPotassium = document.getElementById('result-potassium');
         const resultCalcium = document.getElementById('result-calcium');
         const resultGlucose = document.getElementById('result-glucose');
         const resultFructose = document.getElementById('result-fructose');
-
         const volumeInput = document.getElementById('volume-ml');
-
         const recipeOutput = document.getElementById('recipe-output');
         const recipeList = document.getElementById('recipe-list');
+        const weatherTempInput = document.getElementById('weather-temp');
+        const weatherTempLabel = document.getElementById('weather-temp-label');
+        const sodiumHeatNote = document.getElementById('sodium-heat-note');
 
-        // Theme
+        // ─── Region (World / American) ────────────────────────────────────────────
+        let isAmerican = localStorage.getItem('mix_region') === 'american';
+        const regionBtn = document.getElementById('region-toggle');
+
+        function updateRegionUI() {
+            regionBtn.textContent = isAmerican ? '🇺🇸' : '🌍';
+            regionBtn.title = isAmerican ? 'Switch to metric (World)' : 'Switch to imperial (American)';
+            // Update weather label
+            weatherTempLabel.innerHTML = isAmerican
+                ? 'Forecast Temperature (°F) <span class="text-xs text-gray-400">— adjusts sodium citrate for heat</span>'
+                : 'Forecast Temperature (°C) <span class="text-xs text-gray-400">— adjusts sodium citrate for heat</span>';
+        }
+
+        regionBtn.addEventListener('click', () => {
+            isAmerican = !isAmerican;
+            localStorage.setItem('mix_region', isAmerican ? 'american' : 'world');
+            updateRegionUI();
+            solve();
+        });
+
+        // ─── Theme ────────────────────────────────────────────────────────────────
         let isDarkMode = localStorage.getItem("isDarkMode") === "true";
         const themeBtn = document.getElementById('theme-toggle');
 
@@ -262,16 +297,59 @@
             updateTheme();
         });
 
+        // ─── Weather helpers ──────────────────────────────────────────────────────
 
-        // --- Persistence & Defaults ---
+        /**
+         * Returns the temperature in °C regardless of region setting.
+         * Returns null if no value entered.
+         */
+        function getTempCelsius() {
+            const raw = parseFloat(weatherTempInput.value);
+            if (isNaN(raw)) return null;
+            return isAmerican ? (raw - 32) * 5 / 9 : raw;
+        }
+
+        /**
+         * Returns a sodium multiplier based on forecast temperature.
+         * Base level = 7.2 mg Na / g carbs (no modifier).
+         *   ≤ 15°C / 59°F  → base (×1.00)
+         *   15–25°C        → +10%  (×1.10)
+         *   25–35°C        → +20%  (×1.20)
+         *   > 35°C         → +30%  (×1.30)
+         */
+        function getSodiumMultiplier() {
+            const tempC = getTempCelsius();
+            if (tempC === null) return 1.0;
+            if (tempC <= 15) return 1.0;
+            if (tempC <= 25) return 1.10;
+            if (tempC <= 35) return 1.20;
+            return 1.30;
+        }
+
+        function updateHeatNote(multiplier, tempC) {
+            if (tempC === null || multiplier === 1.0) {
+                sodiumHeatNote.classList.add('hidden');
+                sodiumHeatNote.textContent = '';
+                return;
+            }
+            const pct = Math.round((multiplier - 1) * 100);
+            let label = 'Warm';
+            if (tempC > 35) label = 'Very hot';
+            else if (tempC > 25) label = 'Hot';
+            else if (tempC > 15) label = 'Warm';
+            sodiumHeatNote.textContent = `${label} weather: sodium target increased by ${pct}% to compensate for sweat losses.`;
+            sodiumHeatNote.classList.remove('hidden');
+        }
+
+        // ─── Persistence & Defaults ───────────────────────────────────────────────
         function loadState() {
             const savedCarbs = localStorage.getItem('mix_targetCarbs');
             const savedRatio = localStorage.getItem('mix_targetRatio');
             const savedCustomRatio = localStorage.getItem('mix_customRatio');
             const savedVolume = localStorage.getItem('mix_volume');
             const useGatorade = localStorage.getItem('mix_useGatorade') === 'true';
+            const savedTemp = localStorage.getItem('mix_weatherTemp');
 
-            // Apply Defaults
             targetCarbsInput.value = savedCarbs ? savedCarbs : "90";
             targetRatioSelect.value = savedRatio ? savedRatio : "0.8";
 
@@ -282,6 +360,10 @@
 
             volumeInput.value = savedVolume ? savedVolume : "750";
             gatoradeToggle.checked = useGatorade;
+
+            if (savedTemp !== null && savedTemp !== '') {
+                weatherTempInput.value = savedTemp;
+            }
         }
 
         function saveState() {
@@ -290,9 +372,10 @@
             localStorage.setItem('mix_customRatio', customRatioInput.value);
             localStorage.setItem('mix_volume', volumeInput.value);
             localStorage.setItem('mix_useGatorade', gatoradeToggle.checked);
+            localStorage.setItem('mix_weatherTemp', weatherTempInput.value);
         }
 
-        // --- Logic ---
+        // ─── Logic ────────────────────────────────────────────────────────────────
 
         function getIngredientByName(name) {
             return ingredients.find(i => i.name.toLowerCase().includes(name.toLowerCase()));
@@ -310,10 +393,6 @@
                 ratioVal = parseFloat(targetRatioSelect.value);
             }
 
-            // Ratio is G:F. User selects "N" for "1:N".
-            // So G=1, F=N. Total Parts = 1+N.
-            // F_targ = C * (N / (1+N)).
-
             const F_targ = targetCarbs * (ratioVal / (ratioVal + 1));
             const G_targ = targetCarbs - F_targ;
 
@@ -321,7 +400,7 @@
             const malto = getIngredientByName('Maltodextrin') || ingredients[0];
             const sugar = getIngredientByName('Sugar') || ingredients[2];
             const gatorade = getIngredientByName('Gatorade') || ingredients[1];
-            const sodCit = getIngredientByName('Sodium') || ingredients[3]; // 'Sodium Citrate' in name matches 'Sodium'
+            const sodCit = getIngredientByName('Sodium') || ingredients[3];
 
             // Resets
             malto.amount = 0;
@@ -332,15 +411,9 @@
             // 1. Gatorade Logic
             let F_gat = 0;
             let G_gat = 0;
-
             if (gatoradeToggle.checked && gatorade) {
-                // "gatorade fructose amount would equal total fructose divided by 6"
                 F_gat = F_targ / 6.0;
-
-                // Gatorade G:F = 60:40 (1.5)
                 G_gat = F_gat * (gatorade.glucose / gatorade.fructose);
-
-                // Set amount
                 const gat_total_carbs = F_gat + G_gat;
                 gatorade.amount = gat_total_carbs / (gatorade.carbs / 100);
             }
@@ -349,37 +422,27 @@
             let F_sug = 0;
             let G_sug = 0;
             if (sugar) {
-                // "sugar would equal total fructose - amount of fructose from gatorade"
-                // "then double the value as sugar is 50:50" (mass of carbs)
                 F_sug = Math.max(0, F_targ - F_gat);
-                G_sug = F_sug; // Sugar is 50:50
-
+                G_sug = F_sug;
                 const sugar_total_carbs = F_sug + G_sug;
                 sugar.amount = sugar_total_carbs / (sugar.carbs / 100);
             }
 
             // 3. Maltodextrin Logic
-            let G_malto = 0;
             if (malto) {
-                // "lamtodrextin would equal total glucose - amount of glucose from gatorade mix - amount of glucose from sugar"
                 const G_needed = G_targ - G_gat - G_sug;
-                G_malto = Math.max(0, G_needed);
-
-                malto.amount = G_malto / (malto.carbs / 100);
+                malto.amount = Math.max(0, G_needed) / (malto.carbs / 100);
             }
 
-            // 4. Sodium Solver
-            // Rule: "7.2mg of sodium per 1g of carbs"
-            // Target Sodium (mg) = Carbs * 7.2
-            const targetNa = targetCarbs * 7.2;
+            // 4. Sodium Solver — weather-adjusted
+            const sodiumMultiplier = getSodiumMultiplier();
+            const tempC = getTempCelsius();
+            updateHeatNote(sodiumMultiplier, tempC);
 
-            // Current Sodium from ingredients (mg)
-            // (Amount (g) * Sodium (mg/100g) / 100) -> Correct: Sodium col is mg/100g ? Or mg/kg?
-            // User inputs imply mg/100g format earlier (e.g. 24000). But updated data:
-            // "in 23g of gatorade... 150mg Na" -> 652 mg/100g.
-            // Malto: 71.4 mg/100g.
-            // Sodium Citrate 23600 mg/100g.
+            const baseNa = targetCarbs * 7.2;
+            const targetNa = baseNa * sodiumMultiplier;
 
+            // Current sodium contribution from carb ingredients
             let currentNa = 0;
             [malto, sugar, gatorade].forEach(i => {
                 if (i && i.amount > 0) {
@@ -390,9 +453,7 @@
             const neededNa = Math.max(0, targetNa - currentNa);
 
             if (sodCit) {
-                // Amount (g) = Needed (mg) / (Sodium Content (mg/g))
-                // SodCit Content = 23600 mg / 100g = 236 mg/g.
-                const sodCitDensity = sodCit.sodium / 100.0;
+                const sodCitDensity = sodCit.sodium / 100.0; // mg/g → 236 mg/g
                 if (sodCitDensity > 0) {
                     sodCit.amount = neededNa / sodCitDensity;
                 }
@@ -400,12 +461,25 @@
 
             // Rounding
             [malto, sugar, gatorade, sodCit].forEach(i => {
-                if (i) {
-                    i.amount = Math.round(i.amount);
-                }
+                if (i) i.amount = Math.round(i.amount);
             });
 
             renderOutput();
+        }
+
+        function formatIngredientAmount(ingredient) {
+            if (!isAmerican) {
+                return `${ingredient.amount.toFixed(0)} g`;
+            }
+            const name = ingredient.name.toLowerCase();
+            if (name.includes('sodium citrate')) {
+                // Teaspoons for sodium citrate
+                const tsp = ingredient.amount / GRAMS_PER_TSP_SODCIT;
+                return `${tsp.toFixed(1)} tsp`;
+            }
+            // Ounces for everything else
+            const oz = ingredient.amount / GRAMS_PER_OZ;
+            return `${oz.toFixed(2)} oz`;
         }
 
         function renderOutput() {
@@ -418,11 +492,8 @@
 
             recipeList.innerHTML = '';
 
-            // Strict order: Malto, Gatorade, Sugar, SodCit
-            // Filter inactive/missing
             const displayOrder = ['Maltodextrin', 'Gatorade', 'Sugar', 'Sodium'];
 
-            // Helper to sort by vague name match
             const sortedIngs = ingredients.filter(i => i.amount > 0).sort((a, b) => {
                 const aIdx = displayOrder.findIndex(k => a.name.includes(k));
                 const bIdx = displayOrder.findIndex(k => b.name.includes(k));
@@ -440,10 +511,9 @@
                 const f = carbs * (i.fructose / sum);
 
                 totalCarbs += carbs;
-                totalNa += na;     // Already mg
+                totalNa += na;
                 totalK += k;
                 totalCa += ca;
-
                 totalG += g;
                 totalF += f;
 
@@ -458,9 +528,11 @@
                     ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 dark:text-blue-400 hover:underline">${i.name}</a>`
                     : `<span class="font-medium text-gray-800 dark:text-gray-200">${i.name}</span>`;
 
+                const amountStr = formatIngredientAmount(i);
+
                 const li = document.createElement('li');
                 li.className = "flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0";
-                li.innerHTML = `${nameHtml} <span class="font-bold text-blue-600 dark:text-blue-400">${i.amount.toFixed(0)} g</span>`;
+                li.innerHTML = `${nameHtml} <span class="font-bold text-blue-600 dark:text-blue-400">${amountStr}</span>`;
                 recipeList.appendChild(li);
             });
 
@@ -470,36 +542,31 @@
                 recipeOutput.classList.add('hidden');
             }
 
-            // Calorie Calculation (4 cal/g for Carbs)
+            // Nutrition panel (always metric — standard nutrition labelling)
             const calories = totalCarbs * 4;
             const resultCalories = document.getElementById('result-calories');
             if (resultCalories) resultCalories.textContent = calories.toFixed(0);
 
             resultCarbs.textContent = `${totalCarbs.toFixed(1)}g`;
 
-            // % Daily Value (based on 275g standard for 2000 cal diet)
             const carbPct = (totalCarbs / 275) * 100;
             const resultCarbsPct = document.getElementById('result-carbs-pct');
             if (resultCarbsPct) resultCarbsPct.textContent = `${carbPct.toFixed(0)}%`;
 
-            // Sugars
             const totalSugars = totalG + totalF;
             const resultSugars = document.getElementById('result-sugars');
             if (resultSugars) resultSugars.textContent = `${totalSugars.toFixed(1)}g`;
 
             resultSodium.textContent = `${totalNa.toFixed(0)}mg`;
 
-            // New Outputs
             if (resultPotassium) resultPotassium.textContent = `${totalK.toFixed(0)}mg`;
             if (resultCalcium) resultCalcium.textContent = `${totalCa.toFixed(0)}mg`;
             if (resultGlucose) resultGlucose.textContent = `${totalG.toFixed(1)}g`;
             if (resultFructose) resultFructose.textContent = `${totalF.toFixed(1)}g`;
 
-            // Cost Calculation
             let totalCost = 0;
             sortedIngs.forEach(i => {
-                const costPerGram = i.cost || 0;
-                totalCost += i.amount * costPerGram;
+                totalCost += i.amount * (i.cost || 0);
             });
             const resultCost = document.getElementById('result-cost');
             if (resultCost) resultCost.textContent = `$${totalCost.toFixed(2)}`;
@@ -512,7 +579,7 @@
             resultConc.textContent = `${conc.toFixed(1)}%`;
         }
 
-        // Listeners
+        // ─── Listeners ────────────────────────────────────────────────────────────
         function onSettingChange() {
             saveState();
             solve();
@@ -523,9 +590,11 @@
         customRatioInput.addEventListener('input', onSettingChange);
         volumeInput.addEventListener('input', onSettingChange);
         gatoradeToggle.addEventListener('change', onSettingChange);
+        weatherTempInput.addEventListener('input', onSettingChange);
 
-        // Init
+        // ─── Init ─────────────────────────────────────────────────────────────────
         updateTheme();
+        updateRegionUI();
         loadState();
         solve();
 
